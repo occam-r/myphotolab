@@ -4,7 +4,6 @@ interface Images {
   lastModified: number;
   size: number;
   id: string;
-  blob: string;
   uri: string;
 }
 

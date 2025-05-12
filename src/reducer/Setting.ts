@@ -26,10 +26,10 @@ export const settingReducer = (state: State, action: Action): State => {
       return {
         ...state,
         settings: {
-          autoPlay: action.payload.autoPlay ?? true,
-          autoPlayInterval: action.payload.autoPlayInterval ?? 2000,
-          loop: action.payload.loop ?? true,
-          mode: action.payload.mode ?? "parallax",
+          autoPlay: action.payload.autoPlay,
+          autoPlayInterval: action.payload.autoPlayInterval,
+          loop: action.payload.loop,
+          mode: action.payload.mode,
         },
       };
     case "TOGGLE_AUTO_PLAY":

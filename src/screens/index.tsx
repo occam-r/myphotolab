@@ -4,8 +4,11 @@ import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import Home from "./Home";
+import { useKeepAwake } from "expo-keep-awake";
 
 export default function App() {
+  useKeepAwake();
+
   useEffect(() => {
     const initApp = async () => {
       await initializeCacheDir();
@@ -17,7 +20,7 @@ export default function App() {
     <GestureHandlerRootView>
       <SafeAreaProvider>
         <SafeAreaView style={{ flex: 1 }}>
-          <StatusBar style="auto" />
+          <StatusBar hidden style="auto" />
           <Home />
         </SafeAreaView>
       </SafeAreaProvider>

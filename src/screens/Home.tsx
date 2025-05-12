@@ -142,10 +142,8 @@ export default function Home() {
   // Memoized carousel configuration
   const carouselConfig = useMemo(
     () => ({
-      autoPlay: setting.autoPlay ?? false,
-      autoPlayInterval: setting.autoPlayInterval ?? 3000,
-      loop: setting.loop ?? false,
-      mode: setting.mode ?? "parallax",
+      ...setting,
+      mode: setting.mode as "parallax",
     }),
     [setting.autoPlay, setting.autoPlayInterval, setting.loop, setting.mode],
   );
@@ -168,14 +166,16 @@ export default function Home() {
 
   // Memoized carousel render item function
   const renderCarouselItem = useCallback<CarouselRenderItem<Images>>(
-    ({ item, index, animationValue }) => (
-      <CaruselItem
-        uri={{ uri: item.uri }}
-        key={index}
-        index={index}
-        animationValue={animationValue}
-      />
-    ),
+    ({ item, index, animationValue }) => {
+      return (
+        <CaruselItem
+          img={{ uri: item.uri }}
+          key={index}
+          index={index}
+          animationValue={animationValue}
+        />
+      );
+    },
     [],
   );
 
@@ -279,6 +279,7 @@ const styles = StyleSheet.create({
   },
   carousel: {
     width: width,
+    height: height,
     flex: 1,
   },
   addPhoto: {
@@ -308,6 +309,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
   },
 });
+
+// landscamode, second unit min 1 second - 1 minute max,

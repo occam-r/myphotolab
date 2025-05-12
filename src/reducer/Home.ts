@@ -18,9 +18,9 @@ type Action =
 export const initialHomeState: State = {
   images: [],
   setting: {
-    autoPlay: false,
-    autoPlayInterval: 3000,
-    loop: false,
+    autoPlay: true,
+    autoPlayInterval: 2000,
+    loop: true,
     mode: "parallax",
   },
   loading: {

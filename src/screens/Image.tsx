@@ -16,13 +16,13 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, { useAnimatedRef } from "react-native-reanimated";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
+import { Images } from "@lib/images";
 import type { CameraCapturedPicture } from "expo-camera";
 import Sortable, {
   OrderChangeParams,
   SortableGridRenderItem,
 } from "react-native-sortables";
 import CameraScreen from "./Camera";
-import { Images } from "@lib/images";
 
 interface GridItemProps {
   item: Images;
@@ -40,19 +40,11 @@ const CARD_HEIGHT = 200;
 const COLUMNS = 2;
 
 const GridItem = memo(({ item, onDeleteImage }: GridItemProps) => {
-  const imageSource = useMemo(
-    () => ({
-      uri:
-        item.blob === "" ? item?.uri : `data:${item.type};base64,${item.blob}`,
-    }),
-    [item.type, item.blob, item?.uri],
-  );
-
   return (
     <View style={styles.card}>
       <Image
         style={styles.image}
-        source={imageSource}
+        source={{ uri: item.uri }}
         resizeMode="cover"
         fadeDuration={300}
         accessibilityLabel={`Image ${item.id}`}
@@ -210,17 +202,19 @@ const ImageModal = ({ isOpen, onClose, data, onSaved }: Props) => {
 
   if (showCamera) {
     return (
-      <Modal
-        visible={isOpen}
-        statusBarTranslucent
-        animationType="slide"
-        onRequestClose={() => setShowCamera(false)}
-      >
-        <CameraScreen
-          onClose={() => setShowCamera(false)}
-          onFinish={handleCameraSave}
-        />
-      </Modal>
+      <View>
+        <Modal
+          visible={isOpen}
+          statusBarTranslucent
+          animationType="slide"
+          onRequestClose={() => setShowCamera(false)}
+        >
+          <CameraScreen
+            onClose={() => setShowCamera(false)}
+            onFinish={handleCameraSave}
+          />
+        </Modal>
+      </View>
     );
   }
 

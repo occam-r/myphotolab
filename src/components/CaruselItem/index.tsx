@@ -9,10 +9,10 @@ import { SBItem } from "./SBItem";
 interface ItemProps {
   index: number;
   animationValue: Animated.SharedValue<number>;
-  uri: ImageSourcePropType;
+  img: ImageSourcePropType;
 }
 
-const CaruselItem: React.FC<ItemProps> = ({ index, animationValue, uri }) => {
+const CaruselItem: React.FC<ItemProps> = ({ index, animationValue, img }) => {
   const maskStyle = useAnimatedStyle(() => {
     const backgroundColor = interpolateColor(
       animationValue.value,
@@ -30,7 +30,7 @@ const CaruselItem: React.FC<ItemProps> = ({ index, animationValue, uri }) => {
       <SBItem
         key={index}
         rounded={true}
-        img={uri}
+        img={img}
         style={{ borderRadius: 0 }}
       />
       <Animated.View
