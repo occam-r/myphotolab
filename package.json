@@ -1,0 +1,44 @@
+{
+  "name": "myphotolab",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "android:open": "open -a /Applications/Android\\ Studio.app",
+    "ios": "expo start --ios",
+    "ios:open": "xed -b ios",
+    "web": "expo start --web",
+    "test": "jest --watchAll",
+    "lint": "eslint \"**/*.{js,jsx,ts,tsx}\"",
+    "format": "prettier \"**/*.{js,jsx,ts,tsx}\" --write",
+    "eas-build-pre-install": "corepack enable && cd ../.. && yarn install"
+  },
+  "dependencies": {
+    "expo": "~53.0.9",
+    "expo-file-system": "~18.1.9",
+    "expo-image-picker": "~16.1.4",
+    "expo-keep-awake": "~14.1.4",
+    "expo-local-authentication": "~16.0.4",
+    "expo-status-bar": "~2.2.3",
+    "react": "19.0.0",
+    "react-native": "0.79.2",
+    "react-native-gesture-handler": "~2.24.0",
+    "react-native-reanimated": "~3.17.4",
+    "react-native-reanimated-carousel": "^4.0.2",
+    "react-native-safe-area-context": "5.4.0",
+    "react-native-sortables": "^1.6.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.2",
+    "@types/react": "~19.0.10",
+    "eslint": "^9.26.0",
+    "eslint-config-expo": "~9.2.0",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-prettier": "^5.4.0",
+    "prettier": "^3.5.3",
+    "typescript": "~5.8.3"
+  },
+  "private": true,
+  "packageManager": "yarn@4.9.1"
+}
