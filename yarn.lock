@@ -4351,6 +4351,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"expo-camera@npm:~16.1.6":
+  version: 16.1.6
+  resolution: "expo-camera@npm:16.1.6"
+  dependencies:
+    invariant: "npm:^2.2.4"
+  peerDependencies:
+    expo: "*"
+    react: "*"
+    react-native: "*"
+    react-native-web: "*"
+  peerDependenciesMeta:
+    react-native-web:
+      optional: true
+  checksum: 10c0/6da81195e2d65996ee3c8ea5fb052257b852cd8d134c9322b288eb93ff61791ea7185aad222577b7647ea576b3de3579a40b42d4d885c9798968fe840cfa25e1
+  languageName: node
+  linkType: hard
+
 "expo-constants@npm:~17.1.5, expo-constants@npm:~17.1.6":
   version: 17.1.6
   resolution: "expo-constants@npm:17.1.6"
@@ -4424,6 +4441,16 @@ __metadata:
   peerDependencies:
     expo: "*"
   checksum: 10c0/42ddd04bf9b76b67c987ed68df2c467d0bdc007ef879c724453cb2e6729a1ba61612b510ebc13bf10bf0dc84da4c5da86635ff34bd829955becc600264555d28
+  languageName: node
+  linkType: hard
+
+"expo-media-library@npm:~17.1.6":
+  version: 17.1.6
+  resolution: "expo-media-library@npm:17.1.6"
+  peerDependencies:
+    expo: "*"
+    react-native: "*"
+  checksum: 10c0/4080d351e6676f35643b7263082df8380de065b40b03829c118595f9fa3df87cbb2d11bb256b6c61e055b20b721c4088ba7112a3a591be54231e369c2c89ca80
   languageName: node
   linkType: hard
 
@@ -6634,10 +6661,12 @@ __metadata:
     eslint-config-prettier: "npm:^10.1.5"
     eslint-plugin-prettier: "npm:^5.4.0"
     expo: "npm:~53.0.9"
+    expo-camera: "npm:~16.1.6"
     expo-file-system: "npm:~18.1.9"
     expo-image-picker: "npm:~16.1.4"
     expo-keep-awake: "npm:~14.1.4"
     expo-local-authentication: "npm:~16.0.4"
+    expo-media-library: "npm:~17.1.6"
     expo-status-bar: "npm:~2.2.3"
     prettier: "npm:^3.5.3"
     react: "npm:19.0.0"
