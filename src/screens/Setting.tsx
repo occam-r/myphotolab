@@ -1,7 +1,14 @@
 import { Settings } from "@lib/setting";
-import { settingInitialState, settingReducer } from "@reducer/Setting";
+import { settingInitialState, settingReducer } from "@reducer/Setting"; // Ensure this path is correct
 import colors from "@utils/colors";
-import React, { memo, useCallback, useEffect, useReducer } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useState,
+} from "react";
 import {
   Modal,
   StyleSheet,
@@ -9,30 +16,62 @@ import {
   ToastAndroid,
   View,
   Switch,
-  ScrollView,
   Pressable,
 } from "react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import {
+  GestureHandlerRootView,
+  ScrollView,
+} from "react-native-gesture-handler";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import Button from "@components/Button";
 import Icon from "@components/Icon";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import { StatusBar } from "expo-status-bar";
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  data: Settings;
+  data: Settings; // This should be Settings & { loading?: boolean } if loading is passed in data
   onSaved: (setting: Settings) => void;
 }
 
+const MIN_INTERVAL_MS = 1000;
+const MAX_INTERVAL_MS = 60000;
+const INTERVAL_RANGE_MS = MAX_INTERVAL_MS - MIN_INTERVAL_MS;
+
+const clamp = (value: number, min: number, max: number) =>
+  Math.max(min, Math.min(value, max));
+
+const formatInterval = (ms: number) => {
+  const totalSeconds = Math.round(ms / 1000);
+  if (totalSeconds < 60) {
+    return `${totalSeconds}s`;
+  }
+  const minutes = Math.floor(totalSeconds / 60);
+  return `${minutes}m`;
+};
+
 const SettingModal = ({ isOpen, onClose, data, onSaved }: Props) => {
   const [state, dispatch] = useReducer(settingReducer, settingInitialState);
+  const [sliderWidth, setSliderWidth] = useState(0);
 
   useEffect(() => {
     if (data) {
-      dispatch({ type: "INITIALIZE_SETTINGS", payload: data });
+      const initialInterval = clamp(
+        data.autoPlayInterval ?? MIN_INTERVAL_MS,
+        MIN_INTERVAL_MS,
+        MAX_INTERVAL_MS,
+      );
+      dispatch({
+        type: "INITIALIZE_SETTINGS",
+        payload: {
+          ...settingInitialState.settings, // Start with defaults
+          ...data, // Override with passed data
+          autoPlayInterval: initialInterval, // Ensure interval is clamped
+        },
+      });
     }
-  }, [data]);
+  }, [data, isOpen]);
 
   const handleToggleAutoPlay = useCallback(() => {
     dispatch({ type: "TOGGLE_AUTO_PLAY" });
@@ -43,9 +82,12 @@ const SettingModal = ({ isOpen, onClose, data, onSaved }: Props) => {
   }, []);
 
   const handleIntervalChange = useCallback((value: number) => {
-    // Round to nearest 100ms for better UX
-    const interval = Math.round(value / 100) * 100;
-    dispatch({ type: "SET_INTERVAL", payload: interval });
+    const newInterval = clamp(
+      Math.round(value / 1000) * 1000,
+      MIN_INTERVAL_MS,
+      MAX_INTERVAL_MS,
+    );
+    dispatch({ type: "SET_INTERVAL", payload: newInterval });
   }, []);
 
   const handleModeChange = useCallback((mode: Settings["mode"]) => {
@@ -85,6 +127,15 @@ const SettingModal = ({ isOpen, onClose, data, onSaved }: Props) => {
     [state.settings.mode, handleModeChange],
   );
 
+  const sliderPercentage = useMemo(() => {
+    if (INTERVAL_RANGE_MS === 0) return 0;
+    return (
+      ((state.settings.autoPlayInterval - MIN_INTERVAL_MS) /
+        INTERVAL_RANGE_MS) *
+      100
+    );
+  }, [state.settings.autoPlayInterval]);
+
   return (
     <View>
       <Modal
@@ -92,12 +143,13 @@ const SettingModal = ({ isOpen, onClose, data, onSaved }: Props) => {
         statusBarTranslucent
         animationType="slide"
         onRequestClose={onClose}
+        navigationBarTranslucent
       >
         <SafeAreaProvider>
           <SafeAreaView style={styles.container}>
             <GestureHandlerRootView style={styles.container}>
               <ScrollView
-                style={styles.content}
+                contentContainerStyle={styles.content}
                 showsVerticalScrollIndicator={false}
               >
                 <Animated.View
@@ -124,34 +176,41 @@ const SettingModal = ({ isOpen, onClose, data, onSaved }: Props) => {
                     >
                       <View style={styles.settingRow}>
                         <Text style={styles.settingLabel}>
-                          Interval: {state.settings.autoPlayInterval}ms
+                          Interval:{" "}
+                          {formatInterval(state.settings.autoPlayInterval)}
                         </Text>
                       </View>
                       <View style={styles.sliderContainer}>
-                        <Text style={styles.sliderLabel}>500ms</Text>
-                        <View style={styles.customSlider}>
+                        <Text style={styles.sliderLabel}>
+                          {formatInterval(MIN_INTERVAL_MS)}
+                        </Text>
+                        <View
+                          style={styles.customSlider}
+                          onLayout={(event) =>
+                            setSliderWidth(event.nativeEvent.layout.width)
+                          }
+                        >
                           <Pressable
                             style={styles.sliderTrackContainer}
                             onPress={(event) => {
-                              const { locationX, pageX } = event.nativeEvent;
-                              // Calculate percentage based on locationX
-                              const percentage = Math.max(
-                                0,
-                                Math.min(1, locationX / 280),
-                              ); // Assuming track width ~280px
-                              const newValue =
-                                Math.round((percentage * 4500 + 500) / 100) *
-                                100;
-                              handleIntervalChange(newValue);
+                              if (sliderWidth > 0) {
+                                const { locationX } = event.nativeEvent;
+                                const percentage = Math.max(
+                                  0,
+                                  Math.min(1, locationX / sliderWidth),
+                                );
+                                const newValue =
+                                  percentage * INTERVAL_RANGE_MS +
+                                  MIN_INTERVAL_MS;
+                                handleIntervalChange(newValue);
+                              }
                             }}
                           >
                             <View style={styles.sliderTrack}>
                               <View
                                 style={[
                                   styles.sliderFill,
-                                  {
-                                    width: `${((state.settings.autoPlayInterval - 500) / 4500) * 100}%`,
-                                  },
+                                  { width: `${sliderPercentage}%` },
                                 ]}
                               />
                             </View>
@@ -159,38 +218,15 @@ const SettingModal = ({ isOpen, onClose, data, onSaved }: Props) => {
                           <View
                             style={[
                               styles.sliderThumb,
-                              {
-                                left: `${((state.settings.autoPlayInterval - 500) / 4500) * 100}%`,
-                              },
+                              { left: `${sliderPercentage}%` },
                             ]}
                           >
                             <View style={styles.thumbInner} />
                           </View>
                         </View>
-                        <Text style={styles.sliderLabel}>5000ms</Text>
-                      </View>
-                      <View style={styles.intervalButtons}>
-                        {[1000, 2000, 3000, 4000].map((interval) => (
-                          <Pressable
-                            key={interval}
-                            style={[
-                              styles.intervalButton,
-                              state.settings.autoPlayInterval === interval &&
-                                styles.activeIntervalButton,
-                            ]}
-                            onPress={() => handleIntervalChange(interval)}
-                          >
-                            <Text
-                              style={[
-                                styles.intervalButtonText,
-                                state.settings.autoPlayInterval === interval &&
-                                  styles.activeIntervalButtonText,
-                              ]}
-                            >
-                              {interval}ms
-                            </Text>
-                          </Pressable>
-                        ))}
+                        <Text style={styles.sliderLabel}>
+                          {formatInterval(MAX_INTERVAL_MS)}
+                        </Text>
                       </View>
                     </Animated.View>
                   )}
@@ -250,7 +286,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 16,
+    paddingHorizontal: 16,
   },
   settingRow: {
     flexDirection: "row",
@@ -267,58 +303,57 @@ const styles = StyleSheet.create({
   sliderContainer: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 8,
-    marginBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    marginVertical: 10,
   },
   customSlider: {
     flex: 1,
     height: 40,
-    position: "relative",
     justifyContent: "center",
+    marginHorizontal: 10,
   },
   sliderTrackContainer: {
-    flex: 1,
-    height: 40,
+    height: "100%",
     justifyContent: "center",
   },
   sliderTrack: {
-    height: 4,
+    height: 6,
     backgroundColor: colors.border,
-    borderRadius: 2,
+    borderRadius: 3,
+    width: "100%",
   },
   sliderFill: {
-    height: 4,
+    height: "100%",
     backgroundColor: colors.primary,
-    borderRadius: 2,
+    borderRadius: 3,
   },
   sliderThumb: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: colors.background,
     position: "absolute",
-    top: 10,
-    marginLeft: -10,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    top: "50%",
+    transform: [{ translateY: -12 }, { translateX: -12 }],
+    borderWidth: 2,
+    borderColor: colors.background,
     elevation: 3,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
-    alignItems: "center",
-    justifyContent: "center",
   },
   thumbInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: colors.primary,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.background,
   },
   sliderLabel: {
     fontSize: 12,
     color: colors.text,
-    width: 50,
+    minWidth: 50,
     textAlign: "center",
   },
   intervalButtons: {
@@ -381,7 +416,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     borderTopWidth: 1,
-    borderTopColor: "#e9ecef",
+    borderTopColor: colors.border,
+    backgroundColor: colors.background,
   },
   footerButton: {
     flexDirection: "row",

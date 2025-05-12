@@ -34,10 +34,8 @@ interface Props {
   onClose: () => void;
   data: Images[];
   onSaved: (images: Images[]) => void;
+  isLandscape: boolean;
 }
-
-const CARD_HEIGHT = 200;
-const COLUMNS = 2;
 
 const GridItem = memo(({ item, onDeleteImage }: GridItemProps) => {
   return (
@@ -61,10 +59,13 @@ const GridItem = memo(({ item, onDeleteImage }: GridItemProps) => {
   );
 });
 
-const ImageModal = ({ isOpen, onClose, data, onSaved }: Props) => {
+const ImageModal = ({ isOpen, onClose, data, onSaved, isLandscape }: Props) => {
   const scrollableRef = useAnimatedRef<Animated.ScrollView>();
   const [state, dispatch] = useReducer(imageReducer, imageInitialState);
   const [showCamera, setShowCamera] = useState(false);
+
+  const COLUMNS = useMemo(() => (isLandscape ? 4 : 2), [isLandscape]);
+  const CARD_HEIGHT = useMemo(() => (isLandscape ? 150 : 200), [isLandscape]);
 
   const { orderChanged, sectionImages } = state;
 
@@ -93,9 +94,10 @@ const ImageModal = ({ isOpen, onClose, data, onSaved }: Props) => {
       <GridItem
         item={item}
         onDeleteImage={() => eventHandlers.deleteImage(item.id)}
+        // Pass CARD_HEIGHT to GridItem if its style depends on it
       />
     ),
-    [eventHandlers],
+    [eventHandlers /*, CARD_HEIGHT if passed */],
   );
 
   const handleOrderChange = useCallback((params: OrderChangeParams) => {
@@ -156,20 +158,24 @@ const ImageModal = ({ isOpen, onClose, data, onSaved }: Props) => {
       console.error("Error picking images:", error);
       ToastAndroid.show("Failed to process images", ToastAndroid.SHORT);
     }
-  }, [sectionImages]);
+  }, [sectionImages]); // Removed processPickedImages from here as it's defined below
 
   const processPickedImages = useCallback(
-    async (assets: ImagePicker.ImagePickerAsset[]) => {
+    async (
+      assets: ImagePicker.ImagePickerAsset[] | CameraCapturedPicture[],
+    ) => {
       const timestamp = Date.now();
 
       const newImages = assets.map((asset, index) => ({
-        name: asset.fileName || `Image-${index + 1}`,
-        type: asset.mimeType || "image/jpeg",
+        name:
+          (asset as ImagePicker.ImagePickerAsset).fileName ||
+          `Image-${index + 1}`,
+        type: (asset as ImagePicker.ImagePickerAsset).mimeType || "image/jpeg",
         lastModified: timestamp,
-        size: asset.fileSize || 0,
+        size: (asset as ImagePicker.ImagePickerAsset).fileSize || 0,
         id: `${timestamp}-${index}`,
         uri: asset.uri,
-        blob: asset.base64 ?? "",
+        blob: (asset as ImagePicker.ImagePickerAsset).base64 ?? "",
       }));
 
       try {
@@ -187,7 +193,7 @@ const ImageModal = ({ isOpen, onClose, data, onSaved }: Props) => {
         ToastAndroid.show("Failed to process images", ToastAndroid.SHORT);
       }
     },
-    [sectionImages],
+    [sectionImages, scrollableRef], // Added scrollableRef
   );
 
   const handleCameraSave = useCallback(
@@ -199,6 +205,20 @@ const ImageModal = ({ isOpen, onClose, data, onSaved }: Props) => {
   );
 
   const keyExtractor = useCallback((item: Images) => item.id, []);
+
+  // Dynamic styles for GridItem image if CARD_HEIGHT is used
+  const gridItemImageStyle = useMemo(
+    () => ({
+      width: "100%",
+      height: CARD_HEIGHT,
+    }),
+    [CARD_HEIGHT],
+  );
+
+  // Update GridItem to use dynamic CARD_HEIGHT if necessary
+  // For this example, I'll assume styles.image in GridItem will adapt or you'll pass gridItemImageStyle
+  // If GridItem's internal style for image needs CARD_HEIGHT, you'd pass it as a prop.
+  // For simplicity, let's assume styles.image is sufficient or update GridItem separately.
 
   if (showCamera) {
     return (
@@ -232,12 +252,15 @@ const ImageModal = ({ isOpen, onClose, data, onSaved }: Props) => {
               <Animated.ScrollView
                 ref={scrollableRef}
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.scrollContent}
+                contentContainerStyle={[
+                  styles.scrollContent,
+                  isLandscape && styles.scrollContentLandscape,
+                ]}
               >
                 <Sortable.Grid
                   onOrderChange={handleOrderChange}
                   columnGap={10}
-                  columns={COLUMNS}
+                  columns={COLUMNS} // Use dynamic COLUMNS
                   data={sectionImages}
                   renderItem={renderItem}
                   rowGap={10}
@@ -245,37 +268,84 @@ const ImageModal = ({ isOpen, onClose, data, onSaved }: Props) => {
                   scrollableRef={scrollableRef}
                 />
               </Animated.ScrollView>
-              <View style={styles.footer}>
-                <View style={styles.footerButton}>
-                  <Button
-                    onPress={() => setShowCamera(true)}
-                    style={styles.cameraGallery}
-                    title="Take Photo"
-                    textStyle={styles.text}
-                    icon="camera"
-                  />
-                  <Button
-                    onPress={handleImagePick}
-                    style={styles.cameraGallery}
-                    title="Gallery"
-                    textStyle={styles.text}
-                    icon="image"
-                  />
-                </View>
-                <View style={styles.footerButton}>
-                  <Button
-                    title="Close"
-                    onPress={handleOnClose}
-                    style={styles.closeButton}
-                    textStyle={styles.closeText}
-                  />
-                  <Button
-                    title="Save"
-                    onPress={handleOnSaved}
-                    style={styles.saveButton}
-                    textStyle={styles.saveText}
-                  />
-                </View>
+              <View
+                style={[styles.footer, isLandscape && styles.footerLandscape]}
+              >
+                {isLandscape ? (
+                  <View style={styles.footerRowLandscape}>
+                    <Button
+                      onPress={() => setShowCamera(true)}
+                      style={{
+                        ...styles.footerButtonLandscape,
+                        ...styles.cameraGalleryLandscape,
+                      }}
+                      title="Take Photo"
+                      textStyle={styles.text}
+                      icon="camera"
+                    />
+                    <Button
+                      onPress={handleImagePick}
+                      style={{
+                        ...styles.footerButtonLandscape,
+                        ...styles.cameraGalleryLandscape,
+                      }}
+                      title="Gallery"
+                      textStyle={styles.text}
+                      icon="image"
+                    />
+                    <Button
+                      title="Close"
+                      onPress={handleOnClose}
+                      style={{
+                        ...styles.footerButtonLandscape,
+                        ...styles.closeButtonLandscape,
+                      }}
+                      textStyle={styles.closeText}
+                    />
+                    <Button
+                      title="Save"
+                      onPress={handleOnSaved}
+                      style={{
+                        ...styles.footerButtonLandscape,
+                        ...styles.saveButtonLandscape,
+                      }}
+                      textStyle={styles.saveText}
+                    />
+                  </View>
+                ) : (
+                  <>
+                    <View style={styles.footerRowPortrait}>
+                      <Button
+                        onPress={() => setShowCamera(true)}
+                        style={styles.cameraGalleryPortrait}
+                        title="Take Photo"
+                        textStyle={styles.text}
+                        icon="camera"
+                      />
+                      <Button
+                        onPress={handleImagePick}
+                        style={styles.cameraGalleryPortrait}
+                        title="Gallery"
+                        textStyle={styles.text}
+                        icon="image"
+                      />
+                    </View>
+                    <View style={styles.footerRowPortrait}>
+                      <Button
+                        title="Close"
+                        onPress={handleOnClose}
+                        style={styles.closeButtonPortrait}
+                        textStyle={styles.closeText}
+                      />
+                      <Button
+                        title="Save"
+                        onPress={handleOnSaved}
+                        style={styles.saveButtonPortrait}
+                        textStyle={styles.saveText}
+                      />
+                    </View>
+                  </>
+                )}
               </View>
             </GestureHandlerRootView>
           </SafeAreaView>
@@ -291,8 +361,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   scrollContent: {
-    paddingBottom: 140,
+    // paddingBottom: 140, // Adjust if footer height changes significantly
     paddingHorizontal: 12,
+  },
+  scrollContentLandscape: {
+    // paddingBottom: 80, // Example: Shorter footer in landscape
   },
   card: {
     borderRadius: 12,
@@ -305,8 +378,11 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   image: {
+    // This style is inside GridItem, if it uses CARD_HEIGHT, GridItem needs update
     width: "100%",
-    height: CARD_HEIGHT,
+    // height: CARD_HEIGHT, // If CARD_HEIGHT is dynamic, this needs to be handled in GridItem
+    // For now, assuming GridItem's image style is flexible or uses a fixed height
+    // that works for both orientations, or you pass CARD_HEIGHT as a prop to GridItem.
   },
   deleteButton: {
     position: "absolute",
@@ -343,24 +419,65 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     borderTopWidth: 1,
     borderTopColor: "#e9ecef",
-    gap: 12,
+    paddingVertical: 8, // Added padding
   },
-  saveButton: {
+  footerLandscape: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  footerRowPortrait: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    marginBottom: 8, // Gap between rows in portrait
+  },
+  footerRowLandscape: {
+    flexDirection: "row",
+    justifyContent: "space-around", // Or space-between
+    alignItems: "center",
+    gap: 8,
+  },
+  cameraGalleryPortrait: {
     flex: 1,
-    justifyContent: "center",
-    backgroundColor: colors.primary,
+    borderWidth: 1,
     borderRadius: 12,
-    marginTop: 0,
-    marginBottom: 12,
+    borderColor: colors.primary,
+    backgroundColor: colors.background,
+    marginHorizontal: 4,
   },
-  closeButton: {
+  closeButtonPortrait: {
     flex: 1,
     backgroundColor: "#f1f3f5",
     borderWidth: 1,
     borderColor: "#dee2e6",
     borderRadius: 12,
-    marginTop: 0,
-    marginBottom: 12,
+    marginHorizontal: 4,
+  },
+  saveButtonPortrait: {
+    flex: 1,
+    justifyContent: "center",
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    marginHorizontal: 4,
+  },
+  footerButtonLandscape: {
+    flex: 1,
+    justifyContent: "center",
+    borderRadius: 12,
+    paddingVertical: 10,
+  },
+  cameraGalleryLandscape: {
+    borderWidth: 1,
+    borderColor: colors.primary,
+    backgroundColor: colors.background,
+  },
+  closeButtonLandscape: {
+    backgroundColor: "#f1f3f5",
+    borderWidth: 1,
+    borderColor: "#dee2e6",
+  },
+  saveButtonLandscape: {
+    backgroundColor: colors.primary,
   },
   saveText: {
     fontSize: 16,

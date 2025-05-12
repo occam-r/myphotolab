@@ -26,7 +26,7 @@ import Setting from "./Setting";
 import { Settings } from "@lib/setting";
 import colors from "@utils/colors";
 
-export default function Home() {
+export default function Home({ isLandscape }: { isLandscape: boolean }) {
   const [state, dispatch] = useReducer(homeReducer, initialHomeState);
   const [isImageModalOpen, setImageModalOpen] = useState(false);
   const [isSettingModalOpen, setSettingModalOpen] = useState(false);
@@ -256,6 +256,7 @@ export default function Home() {
           onClose={toggleImageModal}
           data={images}
           onSaved={handleSaveImage}
+          isLandscape={isLandscape}
         />
 
         <Setting
