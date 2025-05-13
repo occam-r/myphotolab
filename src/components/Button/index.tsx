@@ -27,7 +27,7 @@ const Button = ({
   isOnline?: boolean;
   isLoading?: boolean;
   icon?: string;
-  style?: ViewStyle;
+  style?: ViewStyle | ViewStyle[];
   textStyle?: TextStyle;
   shouldVisible?: boolean;
   disabled?: boolean;
@@ -60,7 +60,14 @@ const Button = ({
       }
     >
       {isLoading && <ActivityIndicator color="white" />}
-      {icon && <Icon type="Feather" name={icon} size={24} />}
+      {icon && (
+        <Icon
+          type="Feather"
+          color={String(textStyle?.color ?? colors.background)}
+          name={icon}
+          size={24}
+        />
+      )}
       <Text style={[styles.updateButtonText, textStyle]}>{title}</Text>
     </Pressable>
   );

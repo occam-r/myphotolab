@@ -2,6 +2,9 @@ import * as LocalAuthentication from "expo-local-authentication";
 import { Alert } from "react-native";
 
 export async function authenticateUser() {
+  if (__DEV__) {
+    return true;
+  }
   const hasHardware = await LocalAuthentication.hasHardwareAsync();
   const supportedTypes =
     await LocalAuthentication.supportedAuthenticationTypesAsync();

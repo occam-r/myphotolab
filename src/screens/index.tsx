@@ -1,12 +1,12 @@
 import { initializeCacheDir } from "@utils/cache";
+import { getScreenOrientation } from "@utils/layout";
+import { useKeepAwake } from "expo-keep-awake";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import Home from "./Home";
-import { useKeepAwake } from "expo-keep-awake";
 import { Dimensions } from "react-native";
-import { getScreenOrientation } from "@utils/layout";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import Home from "./Home";
 
 export default function App() {
   useKeepAwake();
@@ -14,6 +14,10 @@ export default function App() {
   const [isLandscape, setIsLandscape] = useState<boolean>(
     getScreenOrientation(),
   );
+  const [dimensions, setDimensions] = useState({
+    width: Dimensions.get("window").width,
+    height: Dimensions.get("window").height,
+  });
 
   useEffect(() => {
     const initApp = async () => {
@@ -25,6 +29,10 @@ export default function App() {
   useEffect(() => {
     const updateOrientation = () => {
       setIsLandscape(getScreenOrientation());
+      setDimensions({
+        width: Dimensions.get("window").width,
+        height: Dimensions.get("window").height,
+      });
     };
     const subscription = Dimensions.addEventListener(
       "change",
@@ -39,7 +47,7 @@ export default function App() {
     <GestureHandlerRootView>
       <SafeAreaProvider>
         <StatusBar hidden style="auto" />
-        <Home isLandscape={isLandscape} />
+        <Home isLandscape={isLandscape} dimensions={dimensions} />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

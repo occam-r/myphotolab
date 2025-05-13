@@ -1,13 +1,17 @@
 import Button from "@components/Button";
-import CaruselItem from "@components/CaruselItem";
+import Icon from "@components/Icon";
 import { Images } from "@lib/images";
+import { Settings } from "@lib/setting";
 import { homeReducer, initialHomeState } from "@reducer/Home";
+import { authenticateUser } from "@utils/authenticateUser";
 import { CACHE_PATHS, readCache, writeCache } from "@utils/cache";
-import { height, width } from "@utils/layout";
+import colors from "@utils/colors";
 import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
+  Text,
+  Image as RNImage,
   ToastAndroid,
   View,
 } from "react-native";
@@ -21,14 +25,22 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import Carousel, { CarouselRenderItem } from "react-native-reanimated-carousel";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Image from "./Image";
 import Setting from "./Setting";
-import { Settings } from "@lib/setting";
-import colors from "@utils/colors";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { authenticateUser } from "@utils/authenticateUser";
 
-export default function Home({ isLandscape }: { isLandscape: boolean }) {
+interface Props {
+  isLandscape: boolean;
+  dimensions: {
+    width: number;
+    height: number;
+  };
+}
+
+export default function Home({
+  isLandscape,
+  dimensions: { width, height },
+}: Props) {
   const { top, bottom } = useSafeAreaInsets();
   const [state, dispatch] = useReducer(homeReducer, initialHomeState);
   const [isImageModalOpen, setImageModalOpen] = useState(false);
@@ -185,20 +197,23 @@ export default function Home({ isLandscape }: { isLandscape: boolean }) {
     return null;
   }, [loading.images, loading.setting]);
 
-  // Memoized carousel render item function
   const renderCarouselItem = useCallback<CarouselRenderItem<Images>>(
-    ({ item, index, animationValue }) => {
+    ({ item }) => {
       return (
-        <CaruselItem
-          img={{ uri: item.uri }}
-          key={index}
-          index={index}
-          animationValue={animationValue}
-          resizeMode={setting.resizeMode}
+        <Animated.Image
+          style={{
+            flex: 1,
+            height: height,
+            width: width,
+            borderRadius: 12,
+            overflow: "hidden",
+          }}
+          source={{ uri: item.uri }}
+          resizeMode={carouselConfig.resizeMode}
         />
       );
     },
-    [carouselConfig.resizeMode, isLandscape],
+    [carouselConfig.resizeMode, height, width],
   );
 
   // Enhanced modeConfig with more customization options
@@ -243,17 +258,63 @@ export default function Home({ isLandscape }: { isLandscape: boolean }) {
             pagingEnabled={true}
             snapEnabled={true}
             width={width}
-            style={styles.carousel}
+            style={{
+              flex: 1,
+              height: height,
+              width: width,
+            }}
             onProgressChange={progress}
             renderItem={renderCarouselItem}
             scrollAnimationDuration={1000}
+            key={isLandscape ? "i-v" : "i-h"}
           />
         ) : (
           <Animated.View
             entering={FadeIn.duration(300)}
             style={styles.emptyStateContainer}
           >
-            <Button title="Add Your First Photo" onPress={handleModalOpen} />
+            <View style={styles.emptyStateContent}>
+              <RNImage
+                source={require("../../assets/icon.png")}
+                style={styles.emptyStateIcon}
+              />
+              <Text style={styles.emptyStateTitle}>
+                Welcome to My Photo Lab
+              </Text>
+              <Text style={styles.emptyStateDescription}>
+                Add photos from your gallery or take pictures with your camera
+              </Text>
+              <View style={styles.instructionsContainer}>
+                <View style={styles.instructionItem}>
+                  <Icon
+                    type="MaterialIcons"
+                    name="touch-app"
+                    size={24}
+                    color={colors.text}
+                  />
+                  <Text style={styles.instructionText}>
+                    Double-tap screen to show/hide controls
+                  </Text>
+                </View>
+                <View style={styles.instructionItem}>
+                  <Icon
+                    type="MaterialIcons"
+                    name="screen-rotation"
+                    size={24}
+                    color={colors.text}
+                  />
+                  <Text style={styles.instructionText}>
+                    Rotate device for landscape view
+                  </Text>
+                </View>
+              </View>
+              <Button
+                title="Add Your First Photo"
+                onPress={handleModalOpen}
+                style={styles.addFirstPhotoButton}
+                icon="camera"
+              />
+            </View>
           </Animated.View>
         )}
 
@@ -298,11 +359,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  carousel: {
-    width: width,
-    height: height,
-    flex: 1,
-  },
   addPhoto: {
     position: "absolute",
     zIndex: 10,
@@ -328,5 +384,53 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    padding: 20,
+    backgroundColor: colors.background,
+  },
+  emptyStateContent: {
+    width: "100%",
+    maxWidth: 400,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyStateIcon: {
+    marginBottom: 20,
+    height: 64,
+    width: 64,
+    borderRadius: 12,
+  },
+  emptyStateTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: colors.text,
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  emptyStateDescription: {
+    fontSize: 16,
+    color: colors.text,
+    textAlign: "center",
+    marginBottom: 24,
+  },
+  instructionsContainer: {
+    width: "100%",
+    marginBottom: 32,
+    backgroundColor: "#f5f5f5",
+    borderRadius: 12,
+    padding: 16,
+  },
+  instructionItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  instructionText: {
+    fontSize: 14,
+    color: colors.text,
+    marginLeft: 12,
+  },
+  addFirstPhotoButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 14,
   },
 });

@@ -217,6 +217,7 @@ const ImageModal = ({ isOpen, onClose, data, onSaved, isLandscape }: Props) => {
           <CameraScreen
             onClose={() => setShowCamera(false)}
             onFinish={handleCameraSave}
+            isLandscape={isLandscape}
           />
         </Modal>
       </View>
