@@ -25,8 +25,10 @@ import Image from "./Image";
 import Setting from "./Setting";
 import { Settings } from "@lib/setting";
 import colors from "@utils/colors";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function Home({ isLandscape }: { isLandscape: boolean }) {
+  const { top, bottom } = useSafeAreaInsets();
   const [state, dispatch] = useReducer(homeReducer, initialHomeState);
   const [isImageModalOpen, setImageModalOpen] = useState(false);
   const [isSettingModalOpen, setSettingModalOpen] = useState(false);
@@ -100,8 +102,17 @@ export default function Home({ isLandscape }: { isLandscape: boolean }) {
     });
 
   // Animated styles for buttons
-  const animatedButtonStyle = useAnimatedStyle(() => {
+  const animatedTopButtonStyle = useAnimatedStyle(() => {
     return {
+      top: top,
+      opacity: buttonOpacity.value,
+      transform: [{ scale: buttonOpacity.value }],
+    };
+  }, [top]);
+
+  const animatedBottomButtonStyle = useAnimatedStyle(() => {
+    return {
+      bottom: bottom,
       opacity: buttonOpacity.value,
       transform: [{ scale: buttonOpacity.value }],
     };
@@ -145,7 +156,13 @@ export default function Home({ isLandscape }: { isLandscape: boolean }) {
       ...setting,
       mode: setting.mode as "parallax",
     }),
-    [setting.autoPlay, setting.autoPlayInterval, setting.loop, setting.mode],
+    [
+      setting.autoPlay,
+      setting.autoPlayInterval,
+      setting.loop,
+      setting.mode,
+      setting.resizeMode,
+    ],
   );
 
   // Render loading indicator when data is being loaded
@@ -173,10 +190,11 @@ export default function Home({ isLandscape }: { isLandscape: boolean }) {
           key={index}
           index={index}
           animationValue={animationValue}
+          resizeMode={setting.resizeMode}
         />
       );
     },
-    [],
+    [carouselConfig.resizeMode, isLandscape],
   );
 
   // Enhanced modeConfig with more customization options
@@ -199,9 +217,9 @@ export default function Home({ isLandscape }: { isLandscape: boolean }) {
       case "parallax":
       default:
         return {
-          parallaxAdjacentItemScale: 0.8,
-          parallaxScrollingOffset: 40,
-          parallaxScrollingScale: 0.9,
+          parallaxAdjacentItemScale: 1,
+          parallaxScrollingOffset: 0,
+          parallaxScrollingScale: 1,
         };
     }
   }, [setting.mode]);
@@ -236,17 +254,17 @@ export default function Home({ isLandscape }: { isLandscape: boolean }) {
         )}
 
         <Animated.View
-          style={[styles.addPhoto, animatedButtonStyle]}
-          entering={FadeIn.duration(300)}
-        >
-          <Button title="Add Photo" onPress={handleModalOpen} />
-        </Animated.View>
-
-        <Animated.View
-          style={[styles.setting, animatedButtonStyle]}
+          style={[styles.setting, animatedTopButtonStyle]}
           entering={FadeIn.duration(300)}
         >
           <Button title="Settings" onPress={toggleSettingModal} />
+        </Animated.View>
+
+        <Animated.View
+          style={[styles.addPhoto, animatedBottomButtonStyle]}
+          entering={FadeIn.duration(300)}
+        >
+          <Button title="Add Photo" onPress={handleModalOpen} />
         </Animated.View>
 
         {renderLoadingOverlay()}
@@ -273,10 +291,8 @@ export default function Home({ isLandscape }: { isLandscape: boolean }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
-    position: "relative",
   },
   carousel: {
     width: width,
@@ -285,7 +301,6 @@ const styles = StyleSheet.create({
   },
   addPhoto: {
     position: "absolute",
-    bottom: 20,
     zIndex: 10,
     borderRadius: 8,
     overflow: "hidden",
@@ -293,7 +308,6 @@ const styles = StyleSheet.create({
   },
   setting: {
     position: "absolute",
-    top: 20,
     zIndex: 10,
     borderRadius: 8,
     overflow: "hidden",
@@ -312,5 +326,3 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 });
-
-// landscamode, second unit min 1 second - 1 minute max,

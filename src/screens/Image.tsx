@@ -65,7 +65,6 @@ const ImageModal = ({ isOpen, onClose, data, onSaved, isLandscape }: Props) => {
   const [showCamera, setShowCamera] = useState(false);
 
   const COLUMNS = useMemo(() => (isLandscape ? 4 : 2), [isLandscape]);
-  const CARD_HEIGHT = useMemo(() => (isLandscape ? 150 : 200), [isLandscape]);
 
   const { orderChanged, sectionImages } = state;
 
@@ -94,10 +93,9 @@ const ImageModal = ({ isOpen, onClose, data, onSaved, isLandscape }: Props) => {
       <GridItem
         item={item}
         onDeleteImage={() => eventHandlers.deleteImage(item.id)}
-        // Pass CARD_HEIGHT to GridItem if its style depends on it
       />
     ),
-    [eventHandlers /*, CARD_HEIGHT if passed */],
+    [eventHandlers],
   );
 
   const handleOrderChange = useCallback((params: OrderChangeParams) => {
@@ -158,7 +156,7 @@ const ImageModal = ({ isOpen, onClose, data, onSaved, isLandscape }: Props) => {
       console.error("Error picking images:", error);
       ToastAndroid.show("Failed to process images", ToastAndroid.SHORT);
     }
-  }, [sectionImages]); // Removed processPickedImages from here as it's defined below
+  }, [sectionImages]);
 
   const processPickedImages = useCallback(
     async (
@@ -175,7 +173,6 @@ const ImageModal = ({ isOpen, onClose, data, onSaved, isLandscape }: Props) => {
         size: (asset as ImagePicker.ImagePickerAsset).fileSize || 0,
         id: `${timestamp}-${index}`,
         uri: asset.uri,
-        blob: (asset as ImagePicker.ImagePickerAsset).base64 ?? "",
       }));
 
       try {
@@ -206,28 +203,14 @@ const ImageModal = ({ isOpen, onClose, data, onSaved, isLandscape }: Props) => {
 
   const keyExtractor = useCallback((item: Images) => item.id, []);
 
-  // Dynamic styles for GridItem image if CARD_HEIGHT is used
-  const gridItemImageStyle = useMemo(
-    () => ({
-      width: "100%",
-      height: CARD_HEIGHT,
-    }),
-    [CARD_HEIGHT],
-  );
-
-  // Update GridItem to use dynamic CARD_HEIGHT if necessary
-  // For this example, I'll assume styles.image in GridItem will adapt or you'll pass gridItemImageStyle
-  // If GridItem's internal style for image needs CARD_HEIGHT, you'd pass it as a prop.
-  // For simplicity, let's assume styles.image is sufficient or update GridItem separately.
-
   if (showCamera) {
     return (
       <View>
         <Modal
           visible={isOpen}
-          statusBarTranslucent
           animationType="slide"
           onRequestClose={() => setShowCamera(false)}
+          supportedOrientations={["portrait", "landscape"]}
         >
           <CameraScreen
             onClose={() => setShowCamera(false)}
@@ -242,9 +225,9 @@ const ImageModal = ({ isOpen, onClose, data, onSaved, isLandscape }: Props) => {
     <View>
       <Modal
         visible={isOpen}
-        statusBarTranslucent
         animationType="slide"
         onRequestClose={handleOnClose}
+        supportedOrientations={["portrait", "landscape"]}
       >
         <SafeAreaProvider>
           <SafeAreaView style={styles.container}>
@@ -260,7 +243,7 @@ const ImageModal = ({ isOpen, onClose, data, onSaved, isLandscape }: Props) => {
                 <Sortable.Grid
                   onOrderChange={handleOrderChange}
                   columnGap={10}
-                  columns={COLUMNS} // Use dynamic COLUMNS
+                  columns={COLUMNS}
                   data={sectionImages}
                   renderItem={renderItem}
                   rowGap={10}
@@ -273,6 +256,15 @@ const ImageModal = ({ isOpen, onClose, data, onSaved, isLandscape }: Props) => {
               >
                 {isLandscape ? (
                   <View style={styles.footerRowLandscape}>
+                    <Button
+                      title="Close"
+                      onPress={handleOnClose}
+                      style={{
+                        ...styles.footerButtonLandscape,
+                        ...styles.closeButtonLandscape,
+                      }}
+                      textStyle={styles.closeText}
+                    />
                     <Button
                       onPress={() => setShowCamera(true)}
                       style={{
@@ -292,15 +284,6 @@ const ImageModal = ({ isOpen, onClose, data, onSaved, isLandscape }: Props) => {
                       title="Gallery"
                       textStyle={styles.text}
                       icon="image"
-                    />
-                    <Button
-                      title="Close"
-                      onPress={handleOnClose}
-                      style={{
-                        ...styles.footerButtonLandscape,
-                        ...styles.closeButtonLandscape,
-                      }}
-                      textStyle={styles.closeText}
                     />
                     <Button
                       title="Save"
@@ -361,12 +344,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   scrollContent: {
-    // paddingBottom: 140, // Adjust if footer height changes significantly
     paddingHorizontal: 12,
+    paddingVertical: 12,
   },
-  scrollContentLandscape: {
-    // paddingBottom: 80, // Example: Shorter footer in landscape
-  },
+  scrollContentLandscape: {},
   card: {
     borderRadius: 12,
     backgroundColor: colors.background,
@@ -378,11 +359,8 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   image: {
-    // This style is inside GridItem, if it uses CARD_HEIGHT, GridItem needs update
     width: "100%",
-    // height: CARD_HEIGHT, // If CARD_HEIGHT is dynamic, this needs to be handled in GridItem
-    // For now, assuming GridItem's image style is flexible or uses a fixed height
-    // that works for both orientations, or you pass CARD_HEIGHT as a prop to GridItem.
+    height: 200,
   },
   deleteButton: {
     position: "absolute",
@@ -412,28 +390,23 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   footer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
     backgroundColor: colors.background,
     borderTopWidth: 1,
     borderTopColor: "#e9ecef",
-    paddingVertical: 8, // Added padding
+    paddingTop: 8,
   },
   footerLandscape: {
-    paddingVertical: 8,
     paddingHorizontal: 12,
   },
   footerRowPortrait: {
     flexDirection: "row",
     justifyContent: "space-between",
     paddingHorizontal: 12,
-    marginBottom: 8, // Gap between rows in portrait
+    marginBottom: 8,
   },
   footerRowLandscape: {
     flexDirection: "row",
-    justifyContent: "space-around", // Or space-between
+    justifyContent: "space-around",
     alignItems: "center",
     gap: 8,
   },

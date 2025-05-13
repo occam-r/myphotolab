@@ -38,10 +38,8 @@ export default function App() {
   return (
     <GestureHandlerRootView>
       <SafeAreaProvider>
-        <SafeAreaView style={{ flex: 1 }}>
-          <StatusBar hidden style="auto" />
-          <Home isLandscape={isLandscape} />
-        </SafeAreaView>
+        <StatusBar hidden style="auto" />
+        <Home isLandscape={isLandscape} />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

@@ -140,10 +140,9 @@ const SettingModal = ({ isOpen, onClose, data, onSaved }: Props) => {
     <View>
       <Modal
         visible={isOpen}
-        statusBarTranslucent
         animationType="slide"
         onRequestClose={onClose}
-        navigationBarTranslucent
+        supportedOrientations={["portrait", "landscape"]}
       >
         <SafeAreaProvider>
           <SafeAreaView style={styles.container}>
@@ -285,8 +284,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
-    flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
   },
   settingRow: {
     flexDirection: "row",
@@ -411,10 +409,6 @@ const styles = StyleSheet.create({
     color: colors.background,
   },
   footer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
     borderTopWidth: 1,
     borderTopColor: colors.border,
     backgroundColor: colors.background,
@@ -424,7 +418,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 12,
     marginTop: 8,
-    paddingBottom: 12,
     gap: 12,
   },
   saveButton: {

@@ -22,6 +22,7 @@ export const initialHomeState: State = {
     autoPlayInterval: 2000,
     loop: true,
     mode: "parallax",
+    resizeMode: "cover",
   },
   loading: {
     images: false,

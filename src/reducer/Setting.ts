@@ -17,6 +17,7 @@ export const settingInitialState: State = {
     autoPlayInterval: 2000,
     loop: true,
     mode: "parallax",
+    resizeMode: "cover",
   },
 };
 
@@ -30,6 +31,7 @@ export const settingReducer = (state: State, action: Action): State => {
           autoPlayInterval: action.payload.autoPlayInterval,
           loop: action.payload.loop,
           mode: action.payload.mode,
+          resizeMode: action.payload.resizeMode,
         },
       };
     case "TOGGLE_AUTO_PLAY":

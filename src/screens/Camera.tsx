@@ -1,5 +1,6 @@
 import Button from "@components/Button";
 import colors from "@utils/colors";
+import { height } from "@utils/layout";
 import {
   CameraCapturedPicture,
   CameraView,
@@ -9,7 +10,6 @@ import { saveToLibraryAsync, usePermissions } from "expo-media-library";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Dimensions,
   FlatList,
   Image,
   Linking,
@@ -20,7 +20,6 @@ import {
   View,
 } from "react-native";
 
-const WINDOW_HEIGHT = Dimensions.get("window").height;
 const PHOTO_OPTIONS = {
   quality: 1,
   exif: true,
@@ -204,7 +203,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   controls: {
-    height: WINDOW_HEIGHT * 0.24,
+    height: height * 0.24,
     backgroundColor: "rgba(0,0,0,0.5)",
     width: "100%",
   },
@@ -238,7 +237,7 @@ const styles = StyleSheet.create({
     height: 70,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: WINDOW_HEIGHT * 0.05,
+    marginBottom: height * 0.05,
   },
   disabledButton: {
     opacity: 0.7,
@@ -254,7 +253,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 20,
     width: "20%",
-    bottom: WINDOW_HEIGHT * 0.05,
+    bottom: height * 0.05,
   },
   closeButton: {
     backgroundColor: "#f1f3f5",
@@ -266,7 +265,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 20,
     width: "20%",
-    bottom: WINDOW_HEIGHT * 0.05,
+    bottom: height * 0.05,
     backgroundColor: "#f1f3f5",
     borderWidth: 1,
     borderColor: "#dee2e6",

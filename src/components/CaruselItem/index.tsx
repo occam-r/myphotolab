@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ImageSourcePropType, View } from "react-native";
+import { ImageResizeMode, ImageSourcePropType, View } from "react-native";
 import Animated, {
   interpolateColor,
   useAnimatedStyle,
@@ -10,9 +10,15 @@ interface ItemProps {
   index: number;
   animationValue: Animated.SharedValue<number>;
   img: ImageSourcePropType;
+  resizeMode?: ImageResizeMode;
 }
 
-const CaruselItem: React.FC<ItemProps> = ({ index, animationValue, img }) => {
+const CaruselItem: React.FC<ItemProps> = ({
+  index,
+  animationValue,
+  img,
+  resizeMode,
+}) => {
   const maskStyle = useAnimatedStyle(() => {
     const backgroundColor = interpolateColor(
       animationValue.value,
@@ -32,6 +38,7 @@ const CaruselItem: React.FC<ItemProps> = ({ index, animationValue, img }) => {
         rounded={true}
         img={img}
         style={{ borderRadius: 0 }}
+        resizeMode={resizeMode}
       />
       <Animated.View
         pointerEvents="none"

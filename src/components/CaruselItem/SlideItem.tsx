@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  ImageResizeMode,
   ImageSourcePropType,
   type ImageStyle,
   type StyleProp,
@@ -13,17 +14,24 @@ interface Props extends AnimatedProps<ViewProps> {
   style?: StyleProp<ImageStyle>;
   rounded?: boolean;
   source?: ImageSourcePropType;
+  resizeMode?: ImageResizeMode;
 }
 
 export const SlideItem: React.FC<Props> = (props) => {
-  const { style, rounded = false, testID, ...animatedViewProps } = props;
+  const {
+    style,
+    rounded = false,
+    testID,
+    resizeMode = "cover",
+    ...animatedViewProps
+  } = props;
 
   return (
     <Animated.View testID={testID} style={{ flex: 1 }} {...animatedViewProps}>
       <Animated.Image
         style={[style, styles.container, rounded && { borderRadius: 15 }]}
         source={props.source}
-        resizeMode="cover"
+        resizeMode={resizeMode}
       />
     </Animated.View>
   );
