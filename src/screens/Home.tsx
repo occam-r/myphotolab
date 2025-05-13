@@ -26,6 +26,7 @@ import Setting from "./Setting";
 import { Settings } from "@lib/setting";
 import colors from "@utils/colors";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { authenticateUser } from "@utils/authenticateUser";
 
 export default function Home({ isLandscape }: { isLandscape: boolean }) {
   const { top, bottom } = useSafeAreaInsets();
@@ -81,8 +82,11 @@ export default function Home({ isLandscape }: { isLandscape: boolean }) {
     }
   }, [isSettingModalOpen, buttonOpacity]);
 
-  const handleModalOpen = useCallback(() => {
-    toggleImageModal();
+  const handleModalOpen = useCallback(async () => {
+    const isAuthenticated = await authenticateUser();
+    if (isAuthenticated) {
+      toggleImageModal();
+    }
   }, [toggleImageModal]);
 
   // Double tap gesture to show/hide buttons

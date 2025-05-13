@@ -210,6 +210,8 @@ const ImageModal = ({ isOpen, onClose, data, onSaved, isLandscape }: Props) => {
           visible={isOpen}
           animationType="slide"
           onRequestClose={() => setShowCamera(false)}
+          statusBarTranslucent
+          navigationBarTranslucent
           supportedOrientations={["portrait", "landscape"]}
         >
           <CameraScreen
@@ -227,6 +229,8 @@ const ImageModal = ({ isOpen, onClose, data, onSaved, isLandscape }: Props) => {
         visible={isOpen}
         animationType="slide"
         onRequestClose={handleOnClose}
+        statusBarTranslucent
+        navigationBarTranslucent
         supportedOrientations={["portrait", "landscape"]}
       >
         <SafeAreaProvider>

@@ -9,7 +9,8 @@ type Action =
   | { type: "TOGGLE_AUTO_PLAY" }
   | { type: "TOGGLE_LOOP" }
   | { type: "SET_INTERVAL"; payload: number }
-  | { type: "SET_MODE"; payload: Settings["mode"] };
+  | { type: "SET_MODE"; payload: Settings["mode"] }
+  | { type: "SET_RESIZE_MODE"; payload: Settings["resizeMode"] };
 
 export const settingInitialState: State = {
   settings: {
@@ -64,6 +65,14 @@ export const settingReducer = (state: State, action: Action): State => {
         settings: {
           ...state.settings,
           mode: action.payload,
+        },
+      };
+    case "SET_RESIZE_MODE":
+      return {
+        ...state,
+        settings: {
+          ...state.settings,
+          resizeMode: action.payload,
         },
       };
     default:

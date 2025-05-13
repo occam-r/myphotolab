@@ -1,3 +1,5 @@
+import Button from "@components/Button";
+import Icon from "@components/Icon";
 import { Settings } from "@lib/setting";
 import { settingInitialState, settingReducer } from "@reducer/Setting"; // Ensure this path is correct
 import colors from "@utils/colors";
@@ -10,23 +12,21 @@ import React, {
   useState,
 } from "react";
 import {
+  ImageResizeMode,
   Modal,
+  Pressable,
   StyleSheet,
+  Switch,
   Text,
   ToastAndroid,
   View,
-  Switch,
-  Pressable,
 } from "react-native";
 import {
   GestureHandlerRootView,
   ScrollView,
 } from "react-native-gesture-handler";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import Button from "@components/Button";
-import Icon from "@components/Icon";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
-import { StatusBar } from "expo-status-bar";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 interface Props {
   isOpen: boolean;
@@ -94,6 +94,13 @@ const SettingModal = ({ isOpen, onClose, data, onSaved }: Props) => {
     dispatch({ type: "SET_MODE", payload: mode });
   }, []);
 
+  const handleResizeModeChange = useCallback(
+    (resizeMode: Settings["resizeMode"]) => {
+      dispatch({ type: "SET_RESIZE_MODE", payload: resizeMode });
+    },
+    [],
+  );
+
   const handleSave = useCallback(() => {
     onSaved(state.settings);
     onClose();
@@ -127,6 +134,33 @@ const SettingModal = ({ isOpen, onClose, data, onSaved }: Props) => {
     [state.settings.mode, handleModeChange],
   );
 
+  const renderResizeModeOption = useCallback(
+    (resizeMode: ImageResizeMode, label: string) => {
+      const isSelected = state.settings.resizeMode === resizeMode;
+      return (
+        <Pressable
+          style={[styles.modeOption, isSelected && styles.selectedModeOption]}
+          onPress={() => handleResizeModeChange(resizeMode)}
+        >
+          <Text
+            style={[styles.modeText, isSelected && styles.selectedModeText]}
+          >
+            {label}
+          </Text>
+          {isSelected && (
+            <Icon
+              type="MaterialIcons"
+              name="check"
+              size={20}
+              color={colors.background}
+            />
+          )}
+        </Pressable>
+      );
+    },
+    [state.settings.resizeMode, handleResizeModeChange],
+  );
+
   const sliderPercentage = useMemo(() => {
     if (INTERVAL_RANGE_MS === 0) return 0;
     return (
@@ -142,6 +176,8 @@ const SettingModal = ({ isOpen, onClose, data, onSaved }: Props) => {
         visible={isOpen}
         animationType="slide"
         onRequestClose={onClose}
+        statusBarTranslucent
+        navigationBarTranslucent
         supportedOrientations={["portrait", "landscape"]}
       >
         <SafeAreaProvider>
@@ -249,6 +285,17 @@ const SettingModal = ({ isOpen, onClose, data, onSaved }: Props) => {
                       {renderModeOption("parallax", "Parallax")}
                       {renderModeOption("horizontal-stack", "H-Stack")}
                       {renderModeOption("vertical-stack", "V-Stack")}
+                    </View>
+                  </View>
+
+                  <View style={styles.settingSection}>
+                    <Text style={styles.settingLabel}>Image Resize Mode</Text>
+                    <View style={styles.modeOptions}>
+                      {renderResizeModeOption("cover", "Cover")}
+                      {renderResizeModeOption("contain", "Contain")}
+                      {renderResizeModeOption("stretch", "Stretch")}
+                      {renderResizeModeOption("repeat", "Repeat")}
+                      {renderResizeModeOption("center", "Center")}
                     </View>
                   </View>
                 </Animated.View>
