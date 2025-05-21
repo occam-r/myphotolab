@@ -9,23 +9,22 @@ import colors from "@utils/colors";
 import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 import {
   ActivityIndicator,
+  Platform,
+  Image as RNImage,
   StyleSheet,
   Text,
-  Image as RNImage,
   ToastAndroid,
   View,
 } from "react-native";
+import RTNLockTask from "react-native-device-lock-task/js/NativeDeviceLockTask";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
-  Easing,
   FadeIn,
   FadeOut,
-  useAnimatedStyle,
+  runOnJS,
   useSharedValue,
-  withTiming,
 } from "react-native-reanimated";
 import Carousel, { CarouselRenderItem } from "react-native-reanimated-carousel";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Image from "./Image";
 import Setting from "./Setting";
 
@@ -41,16 +40,26 @@ export default function Home({
   isLandscape,
   dimensions: { width, height },
 }: Props) {
-  const { top, bottom } = useSafeAreaInsets();
   const [state, dispatch] = useReducer(homeReducer, initialHomeState);
   const [isImageModalOpen, setImageModalOpen] = useState(false);
-  const [isSettingModalOpen, setSettingModalOpen] = useState(false);
+  const [isSettingsVisible, setSettingsVisible] = useState(false);
+  const [isScreenLocked, setIsScreenLocked] = useState(false);
   const { images, setting, loading } = state;
   const progress = useSharedValue<number>(0);
-  const buttonOpacity = useSharedValue<number>(0);
 
-  // Load cached data on component mount
   useEffect(() => {
+    const checkLockTaskMode = async () => {
+      if (Platform.OS === "android" && Platform.Version >= 21) {
+        try {
+          if (RTNLockTask) {
+            const isInLockTask = await RTNLockTask?.isAppInLockTaskMode();
+            setIsScreenLocked(isInLockTask);
+          }
+        } catch (error) {
+          console.error("Error checking lock task mode:", error);
+        }
+      }
+    };
     const loadCachedData = async () => {
       try {
         const cachedImages = await readCache<Images[]>(CACHE_PATHS.IMAGES);
@@ -69,30 +78,13 @@ export default function Home({
     };
 
     loadCachedData();
+    checkLockTaskMode();
   }, []);
 
   // Memoized modal toggle handlers
   const toggleImageModal = useCallback(() => {
     setImageModalOpen((prev) => !prev);
-    // Hide buttons when opening modal
-    if (!isImageModalOpen) {
-      buttonOpacity.value = withTiming(0, {
-        duration: 200,
-        easing: Easing.in(Easing.ease),
-      });
-    }
-  }, [isImageModalOpen, buttonOpacity]);
-
-  const toggleSettingModal = useCallback(() => {
-    setSettingModalOpen((prev) => !prev);
-    // Hide buttons when opening modal
-    if (!isSettingModalOpen) {
-      buttonOpacity.value = withTiming(0, {
-        duration: 200,
-        easing: Easing.in(Easing.ease),
-      });
-    }
-  }, [isSettingModalOpen, buttonOpacity]);
+  }, [isImageModalOpen]);
 
   const handleModalOpen = useCallback(async () => {
     const isAuthenticated = await authenticateUser();
@@ -101,42 +93,96 @@ export default function Home({
     }
   }, [toggleImageModal]);
 
-  // Double tap gesture to show/hide buttons
+  // Double tap gesture to show/hide settings panel
   const doubleTapGesture = Gesture.Tap()
     .numberOfTaps(2)
     .onEnd(() => {
-      buttonOpacity.value =
-        buttonOpacity.value === 0
-          ? withTiming(1, {
-              duration: 300,
-              easing: Easing.out(Easing.ease),
-            })
-          : withTiming(0, {
-              duration: 300,
-              easing: Easing.in(Easing.ease),
-            });
+      if (isSettingsVisible) {
+        runOnJS(setSettingsVisible)(false);
+      } else {
+        runOnJS(setSettingsVisible)(true);
+      }
     });
 
-  // Animated styles for buttons
-  const animatedTopButtonStyle = useAnimatedStyle(() => {
-    return {
-      top: top,
-      opacity: buttonOpacity.value,
-      transform: [{ scale: buttonOpacity.value }],
-    };
-  }, [top]);
-
-  const animatedBottomButtonStyle = useAnimatedStyle(() => {
-    return {
-      bottom: bottom,
-      opacity: buttonOpacity.value,
-      transform: [{ scale: buttonOpacity.value }],
-    };
-  }, []);
+  const toggleScreenLock = useCallback(async () => {
+    if (isScreenLocked) {
+      const isAuthenticated = await authenticateUser();
+      if (isAuthenticated) {
+        if (Platform.OS === "android") {
+          try {
+            if (Platform.Version >= 21) {
+              if (RTNLockTask) {
+                const isInLockTask = await RTNLockTask?.isAppInLockTaskMode();
+                if (!isInLockTask) {
+                  setIsScreenLocked(false);
+                  ToastAndroid.show("Screen is not locked", ToastAndroid.SHORT);
+                  return;
+                }
+                await RTNLockTask?.stopLockTask();
+                setIsScreenLocked(false);
+                ToastAndroid.show("Screen unlocked", ToastAndroid.SHORT);
+              } else {
+                ToastAndroid.show(
+                  "Lock Task Module not available",
+                  ToastAndroid.SHORT,
+                );
+              }
+            } else {
+              ToastAndroid.show(
+                "Lock Task Mode requires Android 5.0 or higher",
+                ToastAndroid.SHORT,
+              );
+            }
+          } catch (error) {
+            console.error("Error unlocking screen:", error);
+            ToastAndroid.show("Failed to unlock screen", ToastAndroid.SHORT);
+          }
+        }
+      }
+    } else {
+      // Lock screen
+      if (Platform.OS === "android") {
+        try {
+          if (Platform.Version >= 21) {
+            if (RTNLockTask) {
+              const isInLockTask = await RTNLockTask?.isAppInLockTaskMode();
+              if (isInLockTask) {
+                setIsScreenLocked(true);
+                ToastAndroid.show(
+                  "Screen is already locked",
+                  ToastAndroid.SHORT,
+                );
+                return;
+              }
+              await RTNLockTask?.startLockTask();
+              setIsScreenLocked(true);
+              ToastAndroid.show("Screen locked", ToastAndroid.SHORT);
+            } else {
+              ToastAndroid.show(
+                "Lock Task Module not available",
+                ToastAndroid.SHORT,
+              );
+            }
+          } else {
+            ToastAndroid.show(
+              "Lock Task Mode requires Android 5.0 or higher",
+              ToastAndroid.SHORT,
+            );
+          }
+        } catch (error) {
+          console.error("Error locking screen:", error);
+          ToastAndroid.show("Failed to lock screen", ToastAndroid.SHORT);
+          ToastAndroid.show(
+            "This feature requires special device setup",
+            ToastAndroid.LONG,
+          );
+        }
+      }
+    }
+  }, [isScreenLocked]);
 
   // Save settings handler with optimized error handling
   const handleSaveSetting = useCallback(async (setting: Settings) => {
-    buttonOpacity.value = 0;
     try {
       dispatch({ type: "SET_LOADING", payload: { setting: true } });
       dispatch({ type: "SET_SETTING", payload: setting });
@@ -152,7 +198,6 @@ export default function Home({
 
   // Save images handler with optimized error handling
   const handleSaveImage = useCallback(async (images: Images[]) => {
-    buttonOpacity.value = 0;
     try {
       dispatch({ type: "SET_LOADING", payload: { images: true } });
       dispatch({ type: "SET_IMAGES", payload: images });
@@ -307,6 +352,17 @@ export default function Home({
                     Rotate device for landscape view
                   </Text>
                 </View>
+                <View style={styles.instructionItem}>
+                  <Icon
+                    type="Feather"
+                    name="lock"
+                    size={24}
+                    color={colors.text}
+                  />
+                  <Text style={styles.instructionText}>
+                    Click on Lock Button to Pin the App
+                  </Text>
+                </View>
               </View>
               <Button
                 title="Add Your First Photo"
@@ -317,20 +373,6 @@ export default function Home({
             </View>
           </Animated.View>
         )}
-
-        <Animated.View
-          style={[styles.setting, animatedTopButtonStyle]}
-          entering={FadeIn.duration(300)}
-        >
-          <Button title="Settings" onPress={toggleSettingModal} />
-        </Animated.View>
-
-        <Animated.View
-          style={[styles.addPhoto, animatedBottomButtonStyle]}
-          entering={FadeIn.duration(300)}
-        >
-          <Button title="Add Photo" onPress={handleModalOpen} />
-        </Animated.View>
 
         {renderLoadingOverlay()}
 
@@ -343,10 +385,14 @@ export default function Home({
         />
 
         <Setting
-          isOpen={isSettingModalOpen}
-          onClose={toggleSettingModal}
+          isVisible={isSettingsVisible}
+          onClose={() => setSettingsVisible(false)}
           data={setting}
-          onSaved={handleSaveSetting}
+          onSave={handleSaveSetting}
+          onAddPhoto={handleModalOpen}
+          onToggleLock={toggleScreenLock}
+          isScreenLocked={isScreenLocked}
+          isLandscape={isLandscape}
         />
       </View>
     </GestureDetector>
@@ -358,20 +404,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-  },
-  addPhoto: {
-    position: "absolute",
-    zIndex: 10,
-    borderRadius: 8,
-    overflow: "hidden",
-    elevation: 5,
-  },
-  setting: {
-    position: "absolute",
-    zIndex: 10,
-    borderRadius: 8,
-    overflow: "hidden",
-    elevation: 5,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,

@@ -19,7 +19,7 @@ export const initialHomeState: State = {
   images: [],
   setting: {
     autoPlay: true,
-    autoPlayInterval: 2000,
+    autoPlayInterval: 1000,
     loop: true,
     mode: "parallax",
     resizeMode: "cover",

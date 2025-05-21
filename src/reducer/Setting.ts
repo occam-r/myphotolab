@@ -1,8 +1,6 @@
 import { Settings } from "@lib/setting";
 
-type State = {
-  settings: Settings;
-};
+type State = Settings;
 
 type Action =
   | { type: "INITIALIZE_SETTINGS"; payload: Settings }
@@ -13,13 +11,11 @@ type Action =
   | { type: "SET_RESIZE_MODE"; payload: Settings["resizeMode"] };
 
 export const settingInitialState: State = {
-  settings: {
-    autoPlay: true,
-    autoPlayInterval: 2000,
-    loop: true,
-    mode: "parallax",
-    resizeMode: "cover",
-  },
+  autoPlay: true,
+  autoPlayInterval: 1000,
+  loop: true,
+  mode: "parallax",
+  resizeMode: "cover",
 };
 
 export const settingReducer = (state: State, action: Action): State => {
@@ -27,53 +23,32 @@ export const settingReducer = (state: State, action: Action): State => {
     case "INITIALIZE_SETTINGS":
       return {
         ...state,
-        settings: {
-          autoPlay: action.payload.autoPlay,
-          autoPlayInterval: action.payload.autoPlayInterval,
-          loop: action.payload.loop,
-          mode: action.payload.mode,
-          resizeMode: action.payload.resizeMode,
-        },
+        ...action.payload,
       };
     case "TOGGLE_AUTO_PLAY":
       return {
         ...state,
-        settings: {
-          ...state.settings,
-          autoPlay: !state.settings.autoPlay,
-        },
+        autoPlay: !state.autoPlay,
       };
     case "TOGGLE_LOOP":
       return {
         ...state,
-        settings: {
-          ...state.settings,
-          loop: !state.settings.loop,
-        },
+        loop: !state.loop,
       };
     case "SET_INTERVAL":
       return {
         ...state,
-        settings: {
-          ...state.settings,
-          autoPlayInterval: action.payload,
-        },
+        autoPlayInterval: action.payload,
       };
     case "SET_MODE":
       return {
         ...state,
-        settings: {
-          ...state.settings,
-          mode: action.payload,
-        },
+        mode: action.payload,
       };
     case "SET_RESIZE_MODE":
       return {
         ...state,
-        settings: {
-          ...state.settings,
-          resizeMode: action.payload,
-        },
+        resizeMode: action.payload,
       };
     default:
       return state;

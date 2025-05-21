@@ -11,7 +11,14 @@ import React, {
   useReducer,
   useState,
 } from "react";
-import { Image, Modal, StyleSheet, ToastAndroid, View } from "react-native";
+import {
+  Image,
+  Modal,
+  StyleSheet,
+  Text,
+  ToastAndroid,
+  View,
+} from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, { useAnimatedRef } from "react-native-reanimated";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
@@ -243,18 +250,43 @@ const ImageModal = ({ isOpen, onClose, data, onSaved, isLandscape }: Props) => {
                 contentContainerStyle={[
                   styles.scrollContent,
                   isLandscape && styles.scrollContentLandscape,
+                  sectionImages.length === 0 && styles.emptyStateContainer,
                 ]}
               >
-                <Sortable.Grid
-                  onOrderChange={handleOrderChange}
-                  columnGap={10}
-                  columns={COLUMNS}
-                  data={sectionImages}
-                  renderItem={renderItem}
-                  rowGap={10}
-                  keyExtractor={keyExtractor}
-                  scrollableRef={scrollableRef}
-                />
+                {sectionImages.length === 0 ? (
+                  <View style={styles.emptyStateContent}>
+                    <Icon
+                      type="MaterialIcons"
+                      name="photo-library"
+                      size={64}
+                      color={colors.primary}
+                    />
+                    <Text style={styles.emptyStateTitle}>No Images Added</Text>
+                    <Text style={styles.emptyStateText}>
+                      Tap "Take Photo" to use your camera or "Gallery" to select
+                      images from your device.
+                    </Text>
+                    <View style={styles.emptyStateArrow}>
+                      <Icon
+                        type="MaterialIcons"
+                        name="arrow-downward"
+                        size={32}
+                        color={colors.primary}
+                      />
+                    </View>
+                  </View>
+                ) : (
+                  <Sortable.Grid
+                    onOrderChange={handleOrderChange}
+                    columnGap={10}
+                    columns={COLUMNS}
+                    data={sectionImages}
+                    renderItem={renderItem}
+                    rowGap={10}
+                    keyExtractor={keyExtractor}
+                    scrollableRef={scrollableRef}
+                  />
+                )}
               </Animated.ScrollView>
               <View
                 style={[styles.footer, isLandscape && styles.footerLandscape]}
@@ -353,6 +385,35 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   scrollContentLandscape: {},
+  emptyStateContainer: {
+    flexGrow: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyStateContent: {
+    padding: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyStateTitle: {
+    fontSize: 22,
+    fontWeight: "600",
+    color: colors.text,
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: "#6c757d",
+    textAlign: "center",
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  emptyStateArrow: {
+    marginTop: 20,
+    opacity: 0.8,
+  },
   card: {
     borderRadius: 12,
     backgroundColor: colors.background,

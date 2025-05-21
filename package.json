@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "expo": "~53.0.9",
+    "expo-blur": "^14.1.4",
     "expo-build-properties": "~0.14.6",
     "expo-camera": "~16.1.6",
     "expo-file-system": "~18.1.9",
@@ -26,6 +27,7 @@
     "expo-status-bar": "~2.2.3",
     "react": "19.0.0",
     "react-native": "0.79.2",
+    "react-native-device-lock-task": "^0.0.3",
     "react-native-gesture-handler": "~2.24.0",
     "react-native-reanimated": "~3.17.4",
     "react-native-reanimated-carousel": "^4.0.2",

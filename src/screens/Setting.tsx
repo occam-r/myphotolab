@@ -1,8 +1,10 @@
 import Button from "@components/Button";
 import Icon from "@components/Icon";
 import { Settings } from "@lib/setting";
-import { settingInitialState, settingReducer } from "@reducer/Setting"; // Ensure this path is correct
+import { settingInitialState, settingReducer } from "@reducer/Setting";
 import colors from "@utils/colors";
+import { IS_AOS } from "@utils/constant";
+import { BlurView } from "expo-blur";
 import React, {
   memo,
   useCallback,
@@ -13,26 +15,24 @@ import React, {
 } from "react";
 import {
   ImageResizeMode,
-  Modal,
   Pressable,
   StyleSheet,
   Switch,
   Text,
-  ToastAndroid,
   View,
 } from "react-native";
-import {
-  GestureHandlerRootView,
-  ScrollView,
-} from "react-native-gesture-handler";
+import { ScrollView } from "react-native-gesture-handler";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 interface Props {
-  isOpen: boolean;
+  isVisible: boolean;
   onClose: () => void;
-  data: Settings; // This should be Settings & { loading?: boolean } if loading is passed in data
-  onSaved: (setting: Settings) => void;
+  data: Settings;
+  isLandscape: boolean;
+  onSave: (setting: Settings) => void;
+  onAddPhoto: () => void;
+  onToggleLock: () => void;
+  isScreenLocked?: boolean;
 }
 
 const MIN_INTERVAL_MS = 1000;
@@ -51,7 +51,16 @@ const formatInterval = (ms: number) => {
   return `${minutes}m`;
 };
 
-const SettingModal = ({ isOpen, onClose, data, onSaved }: Props) => {
+const Setting = ({
+  isVisible,
+  onClose,
+  data,
+  onSave,
+  onAddPhoto,
+  onToggleLock,
+  isScreenLocked = false,
+  isLandscape,
+}: Props) => {
   const [state, dispatch] = useReducer(settingReducer, settingInitialState);
   const [sliderWidth, setSliderWidth] = useState(0);
 
@@ -65,13 +74,13 @@ const SettingModal = ({ isOpen, onClose, data, onSaved }: Props) => {
       dispatch({
         type: "INITIALIZE_SETTINGS",
         payload: {
-          ...settingInitialState.settings, // Start with defaults
+          ...settingInitialState, // Start with defaults
           ...data, // Override with passed data
           autoPlayInterval: initialInterval, // Ensure interval is clamped
         },
       });
     }
-  }, [data, isOpen]);
+  }, [data, isVisible]);
 
   const handleToggleAutoPlay = useCallback(() => {
     dispatch({ type: "TOGGLE_AUTO_PLAY" });
@@ -102,14 +111,13 @@ const SettingModal = ({ isOpen, onClose, data, onSaved }: Props) => {
   );
 
   const handleSave = useCallback(() => {
-    onSaved(state.settings);
+    onSave(state);
     onClose();
-    ToastAndroid.show("Settings saved successfully", ToastAndroid.SHORT);
-  }, [state.settings, onSaved, onClose]);
+  }, [state, onSave, onClose]);
 
   const renderModeOption = useCallback(
     (mode: Settings["mode"], label: string) => {
-      const isSelected = state.settings.mode === mode;
+      const isSelected = state.mode === mode;
       return (
         <Pressable
           style={[styles.modeOption, isSelected && styles.selectedModeOption]}
@@ -131,12 +139,12 @@ const SettingModal = ({ isOpen, onClose, data, onSaved }: Props) => {
         </Pressable>
       );
     },
-    [state.settings.mode, handleModeChange],
+    [state.mode, handleModeChange],
   );
 
   const renderResizeModeOption = useCallback(
     (resizeMode: ImageResizeMode, label: string) => {
-      const isSelected = state.settings.resizeMode === resizeMode;
+      const isSelected = state.resizeMode === resizeMode;
       return (
         <Pressable
           style={[styles.modeOption, isSelected && styles.selectedModeOption]}
@@ -158,180 +166,262 @@ const SettingModal = ({ isOpen, onClose, data, onSaved }: Props) => {
         </Pressable>
       );
     },
-    [state.settings.resizeMode, handleResizeModeChange],
+    [state.resizeMode, handleResizeModeChange],
   );
 
   const sliderPercentage = useMemo(() => {
     if (INTERVAL_RANGE_MS === 0) return 0;
     return (
-      ((state.settings.autoPlayInterval - MIN_INTERVAL_MS) /
-        INTERVAL_RANGE_MS) *
-      100
+      ((state.autoPlayInterval - MIN_INTERVAL_MS) / INTERVAL_RANGE_MS) * 100
     );
-  }, [state.settings.autoPlayInterval]);
+  }, [state.autoPlayInterval]);
+
+  if (!isVisible) return null;
 
   return (
-    <View>
-      <Modal
-        visible={isOpen}
-        animationType="slide"
-        onRequestClose={onClose}
-        statusBarTranslucent
-        navigationBarTranslucent
-        supportedOrientations={["portrait", "landscape"]}
-      >
-        <SafeAreaProvider>
-          <SafeAreaView style={styles.container}>
-            <GestureHandlerRootView style={styles.container}>
-              <ScrollView
-                contentContainerStyle={styles.content}
-                showsVerticalScrollIndicator={false}
-              >
+    <Animated.View
+      style={StyleSheet.absoluteFill}
+      entering={FadeIn.duration(300)}
+      exiting={FadeOut.duration(300)}
+    >
+      <BlurView intensity={200} style={StyleSheet.absoluteFill} tint="dark">
+        <View style={styles.container}>
+          <View style={styles.panel}>
+            <View style={styles.header}>
+              <Text style={styles.title}>Control Panel</Text>
+              <Pressable onPress={onClose} style={styles.closeButton}>
+                <Icon
+                  type="MaterialIcons"
+                  name="close"
+                  size={24}
+                  color={colors.text}
+                />
+              </Pressable>
+            </View>
+
+            <ScrollView
+              contentContainerStyle={styles.content}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.settingRow}>
+                <Text style={styles.settingLabel}>Auto Play</Text>
+                <Switch
+                  value={state.autoPlay}
+                  onValueChange={handleToggleAutoPlay}
+                  trackColor={{
+                    false: colors.border,
+                    true: colors.primary,
+                  }}
+                  thumbColor={colors.background}
+                />
+              </View>
+
+              {state.autoPlay && (
                 <Animated.View
                   entering={FadeIn.duration(300)}
                   exiting={FadeOut.duration(300)}
                 >
                   <View style={styles.settingRow}>
-                    <Text style={styles.settingLabel}>Auto Play</Text>
-                    <Switch
-                      value={state.settings.autoPlay}
-                      onValueChange={handleToggleAutoPlay}
-                      trackColor={{
-                        false: colors.border,
-                        true: colors.primary,
-                      }}
-                      thumbColor={colors.background}
-                    />
+                    <Text style={styles.settingLabel}>
+                      Interval: {formatInterval(state.autoPlayInterval)}
+                    </Text>
                   </View>
-
-                  {state.settings.autoPlay && (
-                    <Animated.View
-                      entering={FadeIn.duration(300)}
-                      exiting={FadeOut.duration(300)}
+                  <View style={styles.sliderContainer}>
+                    <Text style={styles.sliderLabel}>
+                      {formatInterval(MIN_INTERVAL_MS)}
+                    </Text>
+                    <View
+                      style={styles.customSlider}
+                      onLayout={(event) =>
+                        setSliderWidth(event.nativeEvent.layout.width)
+                      }
                     >
-                      <View style={styles.settingRow}>
-                        <Text style={styles.settingLabel}>
-                          Interval:{" "}
-                          {formatInterval(state.settings.autoPlayInterval)}
-                        </Text>
-                      </View>
-                      <View style={styles.sliderContainer}>
-                        <Text style={styles.sliderLabel}>
-                          {formatInterval(MIN_INTERVAL_MS)}
-                        </Text>
-                        <View
-                          style={styles.customSlider}
-                          onLayout={(event) =>
-                            setSliderWidth(event.nativeEvent.layout.width)
+                      <Pressable
+                        style={styles.sliderTrackContainer}
+                        onPress={(event) => {
+                          if (sliderWidth > 0) {
+                            const { locationX } = event.nativeEvent;
+                            const percentage = Math.max(
+                              0,
+                              Math.min(1, locationX / sliderWidth),
+                            );
+                            const newValue =
+                              percentage * INTERVAL_RANGE_MS + MIN_INTERVAL_MS;
+                            handleIntervalChange(newValue);
                           }
-                        >
-                          <Pressable
-                            style={styles.sliderTrackContainer}
-                            onPress={(event) => {
-                              if (sliderWidth > 0) {
-                                const { locationX } = event.nativeEvent;
-                                const percentage = Math.max(
-                                  0,
-                                  Math.min(1, locationX / sliderWidth),
-                                );
-                                const newValue =
-                                  percentage * INTERVAL_RANGE_MS +
-                                  MIN_INTERVAL_MS;
-                                handleIntervalChange(newValue);
-                              }
-                            }}
-                          >
-                            <View style={styles.sliderTrack}>
-                              <View
-                                style={[
-                                  styles.sliderFill,
-                                  { width: `${sliderPercentage}%` },
-                                ]}
-                              />
-                            </View>
-                          </Pressable>
+                        }}
+                      >
+                        <View style={styles.sliderTrack}>
                           <View
                             style={[
-                              styles.sliderThumb,
-                              { left: `${sliderPercentage}%` },
+                              styles.sliderFill,
+                              { width: `${sliderPercentage}%` },
                             ]}
-                          >
-                            <View style={styles.thumbInner} />
-                          </View>
+                          />
                         </View>
-                        <Text style={styles.sliderLabel}>
-                          {formatInterval(MAX_INTERVAL_MS)}
-                        </Text>
+                      </Pressable>
+                      <View
+                        style={[
+                          styles.sliderThumb,
+                          { left: `${sliderPercentage}%` },
+                        ]}
+                      >
+                        <View style={styles.thumbInner} />
                       </View>
-                    </Animated.View>
+                    </View>
+                    <Text style={styles.sliderLabel}>
+                      {formatInterval(MAX_INTERVAL_MS)}
+                    </Text>
+                  </View>
+                </Animated.View>
+              )}
+
+              <View style={styles.settingRow}>
+                <Text style={styles.settingLabel}>Loop Slides</Text>
+                <Switch
+                  value={state.loop}
+                  onValueChange={handleToggleLoop}
+                  trackColor={{
+                    false: colors.border,
+                    true: colors.primary,
+                  }}
+                  thumbColor={colors.background}
+                />
+              </View>
+
+              <View style={styles.settingSection}>
+                <Text style={styles.settingLabel}>Carousel Mode</Text>
+                <View style={styles.modeOptions}>
+                  {renderModeOption("parallax", "Parallax")}
+                  {renderModeOption("horizontal-stack", "H-Stack")}
+                  {renderModeOption("vertical-stack", "V-Stack")}
+                </View>
+              </View>
+
+              <View style={styles.settingSection}>
+                <Text style={styles.settingLabel}>Image Resize Mode</Text>
+                <View style={styles.modeOptions}>
+                  {renderResizeModeOption("cover", "Cover")}
+                  {renderResizeModeOption("contain", "Contain")}
+                  {renderResizeModeOption("stretch", "Stretch")}
+                  {renderResizeModeOption("repeat", "Repeat")}
+                  {renderResizeModeOption("center", "Center")}
+                </View>
+              </View>
+            </ScrollView>
+
+            <View
+              style={[styles.footer, isLandscape && styles.footerLandscape]}
+            >
+              {isLandscape ? (
+                <View style={styles.footerRowLandscape}>
+                  <Button
+                    title="Add Photo"
+                    onPress={onAddPhoto}
+                    icon="camera"
+                    style={styles.actionButtonLandscape}
+                    textStyle={styles.actionButtonText}
+                  />
+                  {IS_AOS && (
+                    <Button
+                      title={isScreenLocked ? "Unlock" : "Lock"}
+                      onPress={onToggleLock}
+                      icon={isScreenLocked ? "unlock" : "lock"}
+                      style={[
+                        styles.actionButtonLandscape,
+                        {
+                          backgroundColor: isScreenLocked
+                            ? colors.error
+                            : colors.secondary,
+                        },
+                      ]}
+                      textStyle={styles.actionButtonText}
+                    />
                   )}
 
-                  <View style={styles.settingRow}>
-                    <Text style={styles.settingLabel}>Loop Slides</Text>
-                    <Switch
-                      value={state.settings.loop}
-                      onValueChange={handleToggleLoop}
-                      trackColor={{
-                        false: colors.border,
-                        true: colors.primary,
-                      }}
-                      thumbColor={colors.background}
+                  <Button
+                    title="Apply Settings"
+                    onPress={handleSave}
+                    style={styles.saveButtonLandscape}
+                    textStyle={styles.saveText}
+                  />
+                </View>
+              ) : (
+                <>
+                  <View style={styles.actionButtons}>
+                    {IS_AOS && (
+                      <Button
+                        title={isScreenLocked ? "Unlock" : "Lock"}
+                        onPress={onToggleLock}
+                        icon={isScreenLocked ? "unlock" : "lock"}
+                        style={[
+                          styles.actionButton,
+                          {
+                            backgroundColor: isScreenLocked
+                              ? colors.error
+                              : colors.secondary,
+                          },
+                        ]}
+                        textStyle={styles.actionButtonText}
+                      />
+                    )}
+
+                    <Button
+                      title="Add Photo"
+                      onPress={onAddPhoto}
+                      icon="camera"
+                      style={styles.actionButton}
+                      textStyle={styles.actionButtonText}
                     />
                   </View>
 
-                  <View style={styles.settingSection}>
-                    <Text style={styles.settingLabel}>Carousel Mode</Text>
-                    <View style={styles.modeOptions}>
-                      {renderModeOption("parallax", "Parallax")}
-                      {renderModeOption("horizontal-stack", "H-Stack")}
-                      {renderModeOption("vertical-stack", "V-Stack")}
-                    </View>
-                  </View>
-
-                  <View style={styles.settingSection}>
-                    <Text style={styles.settingLabel}>Image Resize Mode</Text>
-                    <View style={styles.modeOptions}>
-                      {renderResizeModeOption("cover", "Cover")}
-                      {renderResizeModeOption("contain", "Contain")}
-                      {renderResizeModeOption("stretch", "Stretch")}
-                      {renderResizeModeOption("repeat", "Repeat")}
-                      {renderResizeModeOption("center", "Center")}
-                    </View>
-                  </View>
-                </Animated.View>
-              </ScrollView>
-
-              <View style={styles.footer}>
-                <View style={styles.footerButton}>
                   <Button
-                    title="Close"
-                    onPress={onClose}
-                    style={styles.closeButton}
-                    textStyle={styles.closeText}
-                  />
-                  <Button
-                    title="Save"
+                    title="Apply Settings"
                     onPress={handleSave}
                     style={styles.saveButton}
                     textStyle={styles.saveText}
                   />
-                </View>
-              </View>
-            </GestureHandlerRootView>
-          </SafeAreaView>
-        </SafeAreaProvider>
-      </Modal>
-    </View>
+                </>
+              )}
+            </View>
+          </View>
+        </View>
+      </BlurView>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
+  panel: {
+    width: "100%",
+    height: "100%",
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: colors.background,
+  },
+  closeButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
   },
   content: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
   settingRow: {
     flexDirection: "row",
@@ -343,7 +433,8 @@ const styles = StyleSheet.create({
   },
   settingLabel: {
     fontSize: 16,
-    color: colors.text,
+    color: colors.background,
+    fontWeight: "500",
   },
   sliderContainer: {
     flexDirection: "row",
@@ -397,31 +488,9 @@ const styles = StyleSheet.create({
   },
   sliderLabel: {
     fontSize: 12,
-    color: colors.text,
+    color: colors.background,
     minWidth: 50,
     textAlign: "center",
-  },
-  intervalButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 16,
-    paddingHorizontal: 8,
-  },
-  intervalButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    backgroundColor: colors.border,
-  },
-  activeIntervalButton: {
-    backgroundColor: colors.primary,
-  },
-  intervalButtonText: {
-    fontSize: 12,
-    color: colors.text,
-  },
-  activeIntervalButtonText: {
-    color: colors.background,
   },
   settingSection: {
     marginTop: 16,
@@ -456,40 +525,55 @@ const styles = StyleSheet.create({
     color: colors.background,
   },
   footer: {
+    padding: 16,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    backgroundColor: colors.background,
   },
-  footerButton: {
+  footerLandscape: {
+    paddingHorizontal: 24,
+  },
+  footerRowLandscape: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingHorizontal: 12,
-    marginTop: 8,
+    alignItems: "center",
+  },
+  actionButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 16,
     gap: 12,
   },
-  saveButton: {
+  actionButton: {
     flex: 1,
-    justifyContent: "center",
+    borderRadius: 12,
+    paddingVertical: 12,
+  },
+  actionButtonLandscape: {
+    width: "30%",
+    borderRadius: 12,
+    paddingVertical: 12,
+  },
+  actionButtonText: {
+    fontSize: 14,
+    color: colors.background,
+    fontWeight: "600",
+  },
+  saveButton: {
     backgroundColor: colors.primary,
     borderRadius: 12,
+    paddingVertical: 14,
   },
-  closeButton: {
-    flex: 1,
-    backgroundColor: "#f1f3f5",
-    borderWidth: 1,
-    borderColor: "#dee2e6",
+  saveButtonLandscape: {
+    backgroundColor: colors.primary,
     borderRadius: 12,
+    paddingVertical: 14,
+    width: "30%",
   },
   saveText: {
     fontSize: 16,
     color: colors.background,
     fontWeight: "600",
   },
-  closeText: {
-    fontSize: 16,
-    color: "#495057",
-    fontWeight: "600",
-  },
 });
 
-export default memo(SettingModal);
+export default memo(Setting);
