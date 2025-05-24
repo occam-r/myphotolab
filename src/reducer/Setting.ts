@@ -13,11 +13,11 @@ type Action =
 
 export const settingInitialState: State = {
   autoPlay: true,
-  autoPlayInterval: 1000,
+  autoPlayInterval: 1,
   loop: true,
   mode: "parallax",
   resizeMode: "cover",
-  imageResetTimer: 30000,
+  imageResetTimer: 30,
 };
 
 export const settingReducer = (state: State, action: Action): State => {

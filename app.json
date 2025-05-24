@@ -42,6 +42,14 @@
         {
           "configureAndroidBackup": true
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableProguardInReleaseBuilds": true
+          }
+        }
       ]
     ],
     "extra": {

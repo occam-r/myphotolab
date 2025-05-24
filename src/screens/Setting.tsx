@@ -1,17 +1,11 @@
 import Button from "@components/Button";
 import Icon from "@components/Icon";
+import Slider from "@components/Slider";
 import { Settings } from "@lib/setting";
 import { settingInitialState, settingReducer } from "@reducer/Setting";
 import colors from "@utils/colors";
 import { IS_AOS } from "@utils/constant";
-import React, {
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useReducer,
-  useState,
-} from "react";
+import React, { memo, useCallback, useEffect, useReducer } from "react";
 import {
   ImageResizeMode,
   Pressable,
@@ -35,24 +29,16 @@ interface Props {
   isScreenLocked?: boolean;
 }
 
-const MIN_INTERVAL_MS = 1000;
-const MAX_INTERVAL_MS = 60000;
-const INTERVAL_RANGE_MS = MAX_INTERVAL_MS - MIN_INTERVAL_MS;
-
-const clamp = (value: number, min: number, max: number) =>
-  Math.max(min, Math.min(value, max));
-
-const formatInterval = (ms: number) => {
-  const totalSeconds = Math.round(ms / 1000);
-  if (totalSeconds < 60) {
-    return `${totalSeconds}s`;
+const formatTime = (seconds: number): string => {
+  if (seconds < 60) {
+    return `${seconds}s`;
   }
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  if (seconds === 0) {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  if (remainingSeconds === 0) {
     return `${minutes}m`;
   }
-  return `${minutes}m ${seconds}s`;
+  return `${minutes}m ${remainingSeconds}s`;
 };
 
 const Setting = ({
@@ -66,41 +52,29 @@ const Setting = ({
   isLandscape,
 }: Props) => {
   const [state, dispatch] = useReducer(settingReducer, settingInitialState);
-  const [sliderWidth, setSliderWidth] = useState(0);
 
   useEffect(() => {
     if (data) {
-      const initialInterval = clamp(
-        data.autoPlayInterval ?? MIN_INTERVAL_MS,
-        MIN_INTERVAL_MS,
-        MAX_INTERVAL_MS,
-      );
       dispatch({
         type: "INITIALIZE_SETTINGS",
         payload: {
           ...settingInitialState, // Start with defaults
           ...data, // Override with passed data
-          autoPlayInterval: initialInterval, // Ensure interval is clamped
         },
       });
     }
-  }, [data, isVisible]);
+  }, [data]);
 
-  const handleToggleAutoPlay = useCallback(() => {
+  const toggleAutoPlay = useCallback(() => {
     dispatch({ type: "TOGGLE_AUTO_PLAY" });
   }, []);
 
-  const handleToggleLoop = useCallback(() => {
+  const toggleLoop = useCallback(() => {
     dispatch({ type: "TOGGLE_LOOP" });
   }, []);
 
   const handleIntervalChange = useCallback((value: number) => {
-    const newInterval = clamp(
-      Math.round(value / 1000) * 1000,
-      MIN_INTERVAL_MS,
-      MAX_INTERVAL_MS,
-    );
-    dispatch({ type: "SET_INTERVAL", payload: newInterval });
+    dispatch({ type: "SET_INTERVAL", payload: value });
   }, []);
 
   const handleModeChange = useCallback((mode: Settings["mode"]) => {
@@ -177,40 +151,6 @@ const Setting = ({
     [state.resizeMode, handleResizeModeChange],
   );
 
-  const renderTimerOption = useCallback(
-    (timerMs: number, label: string) => {
-      const isSelected = state.imageResetTimer === timerMs;
-      return (
-        <Pressable
-          style={[styles.modeOption, isSelected && styles.selectedModeOption]}
-          onPress={() => handleImageResetTimerChange(timerMs)}
-        >
-          <Text
-            style={[styles.modeText, isSelected && styles.selectedModeText]}
-          >
-            {label}
-          </Text>
-          {isSelected && (
-            <Icon
-              type="MaterialIcons"
-              name="check"
-              size={20}
-              color={colors.white}
-            />
-          )}
-        </Pressable>
-      );
-    },
-    [state.imageResetTimer, handleImageResetTimerChange],
-  );
-
-  const sliderPercentage = useMemo(() => {
-    if (INTERVAL_RANGE_MS === 0) return 0;
-    return (
-      ((state.autoPlayInterval - MIN_INTERVAL_MS) / INTERVAL_RANGE_MS) * 100
-    );
-  }, [state.autoPlayInterval]);
-
   if (!isVisible) return null;
 
   return (
@@ -241,7 +181,7 @@ const Setting = ({
               <Text style={styles.settingLabel}>Auto Play</Text>
               <Switch
                 value={state.autoPlay}
-                onValueChange={handleToggleAutoPlay}
+                onValueChange={toggleAutoPlay}
                 trackColor={{
                   false: colors.border,
                   true: colors.primary,
@@ -257,56 +197,19 @@ const Setting = ({
               >
                 <View style={styles.settingRow}>
                   <Text style={styles.settingLabel}>
-                    Interval: {formatInterval(state.autoPlayInterval)}
+                    Interval: {formatTime(state.autoPlayInterval)}s
                   </Text>
                 </View>
-                <View style={styles.sliderContainer}>
-                  <Text style={styles.sliderLabel}>
-                    {formatInterval(MIN_INTERVAL_MS)}
-                  </Text>
-                  <View
-                    style={styles.customSlider}
-                    onLayout={(event) =>
-                      setSliderWidth(event.nativeEvent.layout.width)
-                    }
-                  >
-                    <Pressable
-                      style={styles.sliderTrackContainer}
-                      onPress={(event) => {
-                        if (sliderWidth > 0) {
-                          const { locationX } = event.nativeEvent;
-                          const percentage = Math.max(
-                            0,
-                            Math.min(1, locationX / sliderWidth),
-                          );
-                          const newValue =
-                            percentage * INTERVAL_RANGE_MS + MIN_INTERVAL_MS;
-                          handleIntervalChange(newValue);
-                        }
-                      }}
-                    >
-                      <View style={styles.sliderTrack}>
-                        <View
-                          style={[
-                            styles.sliderFill,
-                            { width: `${sliderPercentage}%` },
-                          ]}
-                        />
-                      </View>
-                    </Pressable>
-                    <View
-                      style={[
-                        styles.sliderThumb,
-                        { left: `${sliderPercentage}%` },
-                      ]}
-                    >
-                      <View style={styles.thumbInner} />
-                    </View>
-                  </View>
-                  <Text style={styles.sliderLabel}>
-                    {formatInterval(MAX_INTERVAL_MS)}
-                  </Text>
-                </View>
+                <Slider
+                  value={state.autoPlayInterval}
+                  minValue={1}
+                  maxValue={60}
+                  onValueChange={handleIntervalChange}
+                  formatLabel={formatTime}
+                  showValueLabel={false}
+                  labelStyle={styles.labelStyle}
+                  containerStyle={styles.sliderContainer}
+                />
               </Animated.View>
             )}
 
@@ -314,7 +217,7 @@ const Setting = ({
               <Text style={styles.settingLabel}>Loop Slides</Text>
               <Switch
                 value={state.loop}
-                onValueChange={handleToggleLoop}
+                onValueChange={toggleLoop}
                 trackColor={{
                   false: colors.border,
                   true: colors.primary,
@@ -342,19 +245,29 @@ const Setting = ({
                 {renderResizeModeOption("center", "Center")}
               </View>
             </View>
-
-            <View style={styles.settingSection}>
-              <Text style={styles.settingLabel}>Image Reset Timer</Text>
-              <View style={styles.modeOptions}>
-                {renderTimerOption(30000, "30 sec")}
-                {renderTimerOption(60000, "1 min")}
-                {renderTimerOption(90000, "1 min 30 sec")}
-                {renderTimerOption(120000, "2 min")}
-                {renderTimerOption(180000, "3 min")}
-                {renderTimerOption(240000, "4 min")}
-                {renderTimerOption(300000, "5 min")}
-              </View>
-            </View>
+            {!state.autoPlay && (
+              <Animated.View
+                entering={FadeIn.duration(300)}
+                exiting={FadeOut.duration(300)}
+              >
+                <View style={styles.settingRow}>
+                  <Text style={styles.settingLabel}>
+                    Image Reset Timer: {formatTime(state.imageResetTimer)}
+                  </Text>
+                </View>
+                <Slider
+                  value={state.imageResetTimer}
+                  minValue={30}
+                  maxValue={600}
+                  step={30}
+                  onValueChange={handleImageResetTimerChange}
+                  formatLabel={formatTime}
+                  showValueLabel={false}
+                  labelStyle={styles.labelStyle}
+                  containerStyle={styles.sliderContainer}
+                />
+              </Animated.View>
+            )}
           </ScrollView>
 
           <View style={styles.footer}>
@@ -377,7 +290,7 @@ const Setting = ({
                       {
                         backgroundColor: isScreenLocked
                           ? colors.error
-                          : colors.primaryLight,
+                          : colors.primary,
                       },
                     ]}
                     textStyle={styles.actionButtonText}
@@ -404,7 +317,7 @@ const Setting = ({
                         {
                           backgroundColor: isScreenLocked
                             ? colors.error
-                            : colors.primaryLight,
+                            : colors.primary,
                         },
                       ]}
                       textStyle={styles.actionButtonText}
@@ -463,7 +376,7 @@ const styles = StyleSheet.create({
   closeButton: {
     padding: 8,
     borderRadius: 20,
-    backgroundColor: colors.buttonSecondary,
+    backgroundColor: colors.backgroundSecondary,
   },
   content: {
     paddingHorizontal: 16,
@@ -483,9 +396,11 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   sliderContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 10,
+    height: 60,
+    justifyContent: "center",
+  },
+  labelStyle: {
+    color: colors.white,
   },
   customSlider: {
     flex: 1,

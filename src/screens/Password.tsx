@@ -505,7 +505,7 @@ const styles = StyleSheet.create({
   closeButton: {
     padding: 8,
     borderRadius: 20,
-    backgroundColor: colors.background,
+    backgroundColor: colors.backgroundSecondary,
   },
   // Layout styles for portrait/landscape
   portraitContent: {

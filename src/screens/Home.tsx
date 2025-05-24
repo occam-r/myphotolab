@@ -232,7 +232,7 @@ export default function Home({
   const carouselConfig = useMemo(
     () => ({
       autoPlay: setting.autoPlay,
-      autoPlayInterval: setting.autoPlayInterval,
+      autoPlayInterval: setting.autoPlayInterval * 1000,
       loop: setting.loop,
       mode: setting.mode as "parallax",
       resizeMode: setting.resizeMode,
@@ -272,7 +272,10 @@ export default function Home({
       }
     };
 
-    const intervalTimer = setInterval(resetImages, setting.imageResetTimer);
+    const intervalTimer = setInterval(
+      resetImages,
+      setting.imageResetTimer * 1000,
+    );
 
     return () => clearInterval(intervalTimer);
   }, [
