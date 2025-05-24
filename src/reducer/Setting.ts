@@ -8,7 +8,8 @@ type Action =
   | { type: "TOGGLE_LOOP" }
   | { type: "SET_INTERVAL"; payload: number }
   | { type: "SET_MODE"; payload: Settings["mode"] }
-  | { type: "SET_RESIZE_MODE"; payload: Settings["resizeMode"] };
+  | { type: "SET_RESIZE_MODE"; payload: Settings["resizeMode"] }
+  | { type: "SET_IMAGE_RESET_TIMER"; payload: number };
 
 export const settingInitialState: State = {
   autoPlay: true,
@@ -16,6 +17,7 @@ export const settingInitialState: State = {
   loop: true,
   mode: "parallax",
   resizeMode: "cover",
+  imageResetTimer: 30000,
 };
 
 export const settingReducer = (state: State, action: Action): State => {
@@ -49,6 +51,11 @@ export const settingReducer = (state: State, action: Action): State => {
       return {
         ...state,
         resizeMode: action.payload,
+      };
+    case "SET_IMAGE_RESET_TIMER":
+      return {
+        ...state,
+        imageResetTimer: action.payload,
       };
     default:
       return state;

@@ -6,5 +6,6 @@ interface Settings {
   loop: boolean;
   mode: "parallax" | "horizontal-stack" | "vertical-stack";
   resizeMode: ImageResizeMode;
+  imageResetTimer: number;
 }
 export type { Settings };

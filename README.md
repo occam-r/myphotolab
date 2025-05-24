@@ -2,7 +2,7 @@
 
 ## Overview
 
-My Photo Lab is a feature-rich mobile application built with React Native and Expo that allows users to manage, view, and organize their photos with a beautiful, interactive interface. The app provides a seamless photo viewing experience with customizable slideshow features, camera integration, and secure access through biometric authentication.
+My Photo Lab is a feature-rich mobile application built with React Native and Expo that allows users to manage, view, and organize their photos with security to add or modify photo with a beautiful, interactive interface. The app provides a seamless photo viewing experience with customizable slideshow features, camera integration, and secure access through biometric authentication.
 
 ## Features
 
@@ -144,3 +144,8 @@ yarn web
 ## License
 
 This project is private and proprietary.
+
+Fall Back
+Here Image 
+Time for hero Image
+if time passed, retuyrjn to here image

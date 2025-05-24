@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
   checkboxLabel: {
     marginLeft: 8,
     fontSize: 14,
-    color: colors.background,
+    color: colors.white,
   },
   footerButton: {
     flexDirection: "row",
@@ -520,7 +520,7 @@ const styles = StyleSheet.create({
   },
   saveText: {
     fontSize: 16,
-    color: colors.background,
+    color: colors.white,
     fontWeight: "600",
   },
   closeText: {

@@ -4260,17 +4260,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"expo-blur@npm:^14.1.4":
-  version: 14.1.4
-  resolution: "expo-blur@npm:14.1.4"
-  peerDependencies:
-    expo: "*"
-    react: "*"
-    react-native: "*"
-  checksum: 10c0/6b9076a42130d591dcdd0ee30d6af524b27d92a7cf347b7e27a18c910d63e4aca7374c48025af590feff43597cc5fc87f024143efb4d3e528ec8a5e3b4e2aad2
-  languageName: node
-  linkType: hard
-
 "expo-build-properties@npm:~0.14.6":
   version: 0.14.6
   resolution: "expo-build-properties@npm:0.14.6"
@@ -4409,6 +4398,15 @@ __metadata:
   dependencies:
     invariant: "npm:^2.2.4"
   checksum: 10c0/34cebb2af1d4b3ec58831274e6f8873ff699b36a7d749a1d8bc6b05ee321cc2a5d898f1224c3931fd825739dd554634445867eb5c148a95ec2f4412dc359ccbe
+  languageName: node
+  linkType: hard
+
+"expo-secure-store@npm:~14.2.3":
+  version: 14.2.3
+  resolution: "expo-secure-store@npm:14.2.3"
+  peerDependencies:
+    expo: "*"
+  checksum: 10c0/c1414e2a0a470a4531ae8b6f04e355184e29f61c41c988f9c9f6a3fa2a3f563382a7d44976d8ed560165288993971d295d4071e4921fe17105f3b807180e6f06
   languageName: node
   linkType: hard
 
@@ -6505,7 +6503,6 @@ __metadata:
     eslint-config-prettier: "npm:^10.1.5"
     eslint-plugin-prettier: "npm:^5.4.0"
     expo: "npm:~53.0.9"
-    expo-blur: "npm:^14.1.4"
     expo-build-properties: "npm:~0.14.6"
     expo-camera: "npm:~16.1.6"
     expo-file-system: "npm:~18.1.9"
@@ -6513,6 +6510,7 @@ __metadata:
     expo-keep-awake: "npm:~14.1.4"
     expo-local-authentication: "npm:~16.0.4"
     expo-media-library: "npm:~17.1.6"
+    expo-secure-store: "npm:~14.2.3"
     expo-status-bar: "npm:~2.2.3"
     prettier: "npm:^3.5.3"
     react: "npm:19.0.0"

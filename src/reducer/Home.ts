@@ -1,5 +1,6 @@
 import { Images } from "@lib/images";
 import { Settings } from "@lib/setting";
+import { settingInitialState } from "./Setting";
 
 type State = {
   images: Images[];
@@ -17,13 +18,7 @@ type Action =
 
 export const initialHomeState: State = {
   images: [],
-  setting: {
-    autoPlay: true,
-    autoPlayInterval: 1000,
-    loop: true,
-    mode: "parallax",
-    resizeMode: "cover",
-  },
+  setting: settingInitialState,
   loading: {
     images: false,
     setting: false,

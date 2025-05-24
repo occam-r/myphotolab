@@ -27,6 +27,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "expo-local-authentication",
       [
         "expo-build-properties",
         {
@@ -34,6 +35,12 @@
             "enableProguardInReleaseBuilds": true,
             "enableShrinkResourcesInReleaseBuilds": true
           }
+        }
+      ],
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true
         }
       ]
     ],

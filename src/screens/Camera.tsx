@@ -1,5 +1,4 @@
 import Button from "@components/Button";
-import Icon from "@components/Icon";
 import colors from "@utils/colors";
 import {
   CameraCapturedPicture,
@@ -19,6 +18,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const PHOTO_OPTIONS = {
   quality: 1,
@@ -34,6 +34,7 @@ interface Props {
 
 const CameraScreen = ({ onFinish, onClose, isLandscape }: Props) => {
   const cameraRef = useRef<CameraView>(null);
+  const { bottom } = useSafeAreaInsets();
 
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [libraryPermission, requestLibraryPermission] = usePermissions();
@@ -149,16 +150,17 @@ const CameraScreen = ({ onFinish, onClose, isLandscape }: Props) => {
         <View
           style={[
             styles.controls,
-            isLandscape ? styles.controlsLandscape : null,
+            isLandscape
+              ? styles.controlsLandscape
+              : {
+                  paddingBottom: bottom,
+                  paddingTop: 12,
+                  borderTopWidth: 1,
+                  borderTopColor: colors.cameraControls,
+                },
           ]}
         >
-          <View style={[styles.previewContainer, isLandscape && { flex: 1 }]}>
-            {capturedPhotos.length > 0 && (
-              <Text style={styles.photoCount}>
-                {capturedPhotos.length} Photo
-                {capturedPhotos.length !== 1 ? "s" : ""}
-              </Text>
-            )}
+          <View style={styles.previewContainer}>
             <FlatList
               horizontal={!isLandscape}
               data={capturedPhotos}
@@ -173,7 +175,7 @@ const CameraScreen = ({ onFinish, onClose, isLandscape }: Props) => {
               maxToRenderPerBatch={10}
               windowSize={5}
               removeClippedSubviews={true}
-              numColumns={isLandscape ? 1 : undefined}
+              numColumns={isLandscape ? 2 : undefined}
               key={isLandscape ? "v" : "h"}
             />
           </View>
@@ -184,17 +186,6 @@ const CameraScreen = ({ onFinish, onClose, isLandscape }: Props) => {
               isLandscape && styles.actionButtonsLandscape,
             ]}
           >
-            {isLandscape && (
-              <View style={styles.orientationIndicator}>
-                <Icon
-                  type="MaterialIcons"
-                  name="screen-rotation"
-                  size={18}
-                  color={colors.background}
-                />
-                <Text style={styles.orientationText}>Landscape Mode</Text>
-              </View>
-            )}
             <TouchableOpacity
               style={styles.captureButton}
               onPress={takePicture}
@@ -263,24 +254,18 @@ const styles = StyleSheet.create({
   },
   controls: {
     position: "absolute",
-    height: "30%",
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: colors.modal,
     width: "100%",
     bottom: 0,
-    paddingBottom: 15,
-    paddingTop: 10,
     justifyContent: "space-between",
   },
   controlsLandscape: {
-    width: "25%",
+    width: "24%",
     height: "100%",
     right: 0,
     top: 0,
-    paddingVertical: 15,
-    paddingHorizontal: 12,
-    justifyContent: "space-between",
     borderLeftWidth: 1,
-    borderLeftColor: "rgba(255,255,255,0.2)",
+    borderLeftColor: colors.cameraControls,
   },
   message: {
     textAlign: "center",
@@ -289,16 +274,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   previewContainer: {
-    marginBottom: 10,
+    flex: 1,
   },
   photoCount: {
-    color: colors.background,
+    color: colors.white,
     fontSize: 14,
     fontWeight: "600",
     marginLeft: 10,
     marginBottom: 5,
     textAlign: "center",
-    backgroundColor: "rgba(0,0,0,0.3)",
+    backgroundColor: colors.modal,
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 12,
@@ -306,12 +291,10 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   previewList: {
-    marginVertical: 5,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
   },
   previewListLandscape: {
-    marginHorizontal: 5,
-    paddingVertical: 5,
+    paddingTop: 12,
     alignItems: "center",
   },
   thumbnailContainer: {
@@ -333,39 +316,37 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: colors.modal,
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 20,
     marginBottom: 15,
   },
   orientationText: {
-    color: colors.background,
+    color: colors.white,
     fontSize: 12,
     marginLeft: 5,
     fontWeight: "500",
   },
   actionButtons: {
-    flex: 1,
     justifyContent: "flex-end",
     alignItems: "center",
   },
   actionButtonsLandscape: {
     justifyContent: "center",
-    paddingBottom: 20,
     alignItems: "center",
     width: "100%",
+    paddingBottom: 12,
   },
   buttonContainer: {
     flexDirection: "row-reverse",
     width: "100%",
     justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 20,
-    marginTop: 10,
   },
   buttonContainerLandscape: {
     flexDirection: "column",
-    width: "90%",
     alignItems: "center",
   },
   captureButton: {
@@ -377,7 +358,7 @@ const styles = StyleSheet.create({
     height: 70,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 12,
+    marginVertical: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
@@ -386,7 +367,7 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.7,
-    borderColor: "#cccccc",
+    borderColor: colors.textSecondary,
   },
   innerCircle: {
     backgroundColor: colors.background,
@@ -403,16 +384,16 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   closeButton: {
-    backgroundColor: "#f1f3f5",
+    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: "#dee2e6",
+    borderColor: colors.border,
     width: "90%",
   },
   closeButt: {
     width: "45%",
-    backgroundColor: "#f1f3f5",
+    backgroundColor: colors.cameraControls,
     borderWidth: 1,
-    borderColor: "#dee2e6",
+    borderColor: colors.border,
   },
   closeButtLandscape: {
     width: "100%",
@@ -420,7 +401,7 @@ const styles = StyleSheet.create({
   },
   closeText: {
     fontSize: 16,
-    color: "#495057",
+    color: colors.textSecondary,
     fontWeight: "600",
   },
   saveButton: {
@@ -428,7 +409,7 @@ const styles = StyleSheet.create({
   },
   saveText: {
     fontSize: 16,
-    color: colors.background,
+    color: colors.white,
     fontWeight: "600",
   },
 });

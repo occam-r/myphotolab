@@ -3,10 +3,17 @@ import Icon from "@components/Icon";
 import { Images } from "@lib/images";
 import { Settings } from "@lib/setting";
 import { homeReducer, initialHomeState } from "@reducer/Home";
-import { authenticateUser } from "@utils/authenticateUser";
+import { authenticateUser, isAuthAvaiable } from "@utils/authenticateUser";
 import { CACHE_PATHS, readCache, writeCache } from "@utils/cache";
 import colors from "@utils/colors";
-import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -24,8 +31,12 @@ import Animated, {
   runOnJS,
   useSharedValue,
 } from "react-native-reanimated";
-import Carousel, { CarouselRenderItem } from "react-native-reanimated-carousel";
+import Carousel, {
+  CarouselRenderItem,
+  ICarouselInstance,
+} from "react-native-reanimated-carousel";
 import Image from "./Image";
+import Password from "./Password";
 import Setting from "./Setting";
 
 interface Props {
@@ -43,9 +54,11 @@ export default function Home({
   const [state, dispatch] = useReducer(homeReducer, initialHomeState);
   const [isImageModalOpen, setImageModalOpen] = useState(false);
   const [isSettingsVisible, setSettingsVisible] = useState(false);
+  const [fallBackModal, setFallBackModal] = useState(false); // This will be our new PIN modal visibility state
   const [isScreenLocked, setIsScreenLocked] = useState(false);
   const { images, setting, loading } = state;
   const progress = useSharedValue<number>(0);
+  const carouselRef = useRef<ICarouselInstance>(null);
 
   useEffect(() => {
     const checkLockTaskMode = async () => {
@@ -87,14 +100,19 @@ export default function Home({
   }, [isImageModalOpen]);
 
   const handleModalOpen = useCallback(async () => {
-    const isAuthenticated = await authenticateUser();
-    if (isAuthenticated) {
-      toggleImageModal();
+    const isAuth = await isAuthAvaiable();
+    if (isAuth) {
+      const isAuthenticated = await authenticateUser();
+      if (isAuthenticated) {
+        toggleImageModal();
+      }
+    } else {
+      setFallBackModal(true);
     }
   }, [toggleImageModal]);
 
-  // Double tap gesture to show/hide settings panel
   const doubleTapGesture = Gesture.Tap()
+    .enabled(!fallBackModal)
     .numberOfTaps(2)
     .onEnd(() => {
       if (isSettingsVisible) {
@@ -211,11 +229,13 @@ export default function Home({
     }
   }, []);
 
-  // Memoized carousel configuration
   const carouselConfig = useMemo(
     () => ({
-      ...setting,
+      autoPlay: setting.autoPlay,
+      autoPlayInterval: setting.autoPlayInterval,
+      loop: setting.loop,
       mode: setting.mode as "parallax",
+      resizeMode: setting.resizeMode,
     }),
     [
       setting.autoPlay,
@@ -225,6 +245,43 @@ export default function Home({
       setting.resizeMode,
     ],
   );
+
+  useEffect(() => {
+    if (
+      !images.length ||
+      isImageModalOpen ||
+      isSettingsVisible ||
+      setting.autoPlay
+    ) {
+      return;
+    }
+
+    // Create a recurring timer that resets the carousel after each interval
+    const resetImages = () => {
+      const carousel = carouselRef.current;
+      if (!carousel) return;
+
+      const currentIndex = carousel.getCurrentIndex();
+      // Only reset if not already at the first image
+      if (currentIndex !== 0) {
+        carousel.scrollTo({ index: 0, animated: true });
+        // Only show toast on Android platform
+        if (Platform.OS === "android") {
+          ToastAndroid.show("Images reset to beginning", ToastAndroid.SHORT);
+        }
+      }
+    };
+
+    const intervalTimer = setInterval(resetImages, setting.imageResetTimer);
+
+    return () => clearInterval(intervalTimer);
+  }, [
+    images.length,
+    isImageModalOpen,
+    isSettingsVisible,
+    setting.imageResetTimer,
+    setting.autoPlay,
+  ]);
 
   // Render loading indicator when data is being loaded
   const renderLoadingOverlay = useCallback(() => {
@@ -246,19 +303,13 @@ export default function Home({
     ({ item }) => {
       return (
         <Animated.Image
-          style={{
-            flex: 1,
-            height: height,
-            width: width,
-            borderRadius: 12,
-            overflow: "hidden",
-          }}
+          style={styles.carouselImage}
           source={{ uri: item.uri }}
           resizeMode={carouselConfig.resizeMode}
         />
       );
     },
-    [carouselConfig.resizeMode, height, width],
+    [carouselConfig.resizeMode],
   );
 
   // Enhanced modeConfig with more customization options
@@ -293,21 +344,18 @@ export default function Home({
       <View style={styles.container}>
         {images.length > 0 ? (
           <Carousel<Images>
+            ref={carouselRef}
             data={images}
             height={height}
+            width={width}
             autoPlay={carouselConfig.autoPlay}
             autoPlayInterval={carouselConfig.autoPlayInterval}
             loop={carouselConfig.loop}
             mode={carouselConfig.mode}
             modeConfig={modeConfig}
-            pagingEnabled={true}
-            snapEnabled={true}
-            width={width}
-            style={{
-              flex: 1,
-              height: height,
-              width: width,
-            }}
+            pagingEnabled
+            snapEnabled
+            style={styles.carousel}
             onProgressChange={progress}
             renderItem={renderCarouselItem}
             scrollAnimationDuration={1000}
@@ -394,6 +442,18 @@ export default function Home({
           isScreenLocked={isScreenLocked}
           isLandscape={isLandscape}
         />
+        <Password
+          isVisible={fallBackModal}
+          onClose={() => {
+            setFallBackModal(false);
+          }}
+          onMatches={() => {
+            setFallBackModal(false);
+            setSettingsVisible(false);
+            toggleImageModal();
+          }}
+          isLandscape={isLandscape}
+        />
       </View>
     </GestureDetector>
   );
@@ -411,6 +471,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     zIndex: 20,
+  },
+  carousel: {
+    flex: 1,
+  },
+  carouselImage: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: "hidden",
   },
   emptyStateContainer: {
     flex: 1,

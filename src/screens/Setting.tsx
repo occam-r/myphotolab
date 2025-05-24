@@ -4,7 +4,6 @@ import { Settings } from "@lib/setting";
 import { settingInitialState, settingReducer } from "@reducer/Setting";
 import colors from "@utils/colors";
 import { IS_AOS } from "@utils/constant";
-import { BlurView } from "expo-blur";
 import React, {
   memo,
   useCallback,
@@ -23,6 +22,7 @@ import {
 } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface Props {
   isVisible: boolean;
@@ -48,7 +48,11 @@ const formatInterval = (ms: number) => {
     return `${totalSeconds}s`;
   }
   const minutes = Math.floor(totalSeconds / 60);
-  return `${minutes}m`;
+  const seconds = totalSeconds % 60;
+  if (seconds === 0) {
+    return `${minutes}m`;
+  }
+  return `${minutes}m ${seconds}s`;
 };
 
 const Setting = ({
@@ -110,6 +114,10 @@ const Setting = ({
     [],
   );
 
+  const handleImageResetTimerChange = useCallback((timerMs: number) => {
+    dispatch({ type: "SET_IMAGE_RESET_TIMER", payload: timerMs });
+  }, []);
+
   const handleSave = useCallback(() => {
     onSave(state);
     onClose();
@@ -133,7 +141,7 @@ const Setting = ({
               type="MaterialIcons"
               name="check"
               size={20}
-              color={colors.background}
+              color={colors.white}
             />
           )}
         </Pressable>
@@ -160,13 +168,40 @@ const Setting = ({
               type="MaterialIcons"
               name="check"
               size={20}
-              color={colors.background}
+              color={colors.white}
             />
           )}
         </Pressable>
       );
     },
     [state.resizeMode, handleResizeModeChange],
+  );
+
+  const renderTimerOption = useCallback(
+    (timerMs: number, label: string) => {
+      const isSelected = state.imageResetTimer === timerMs;
+      return (
+        <Pressable
+          style={[styles.modeOption, isSelected && styles.selectedModeOption]}
+          onPress={() => handleImageResetTimerChange(timerMs)}
+        >
+          <Text
+            style={[styles.modeText, isSelected && styles.selectedModeText]}
+          >
+            {label}
+          </Text>
+          {isSelected && (
+            <Icon
+              type="MaterialIcons"
+              name="check"
+              size={20}
+              color={colors.white}
+            />
+          )}
+        </Pressable>
+      );
+    },
+    [state.imageResetTimer, handleImageResetTimerChange],
   );
 
   const sliderPercentage = useMemo(() => {
@@ -184,155 +219,192 @@ const Setting = ({
       entering={FadeIn.duration(300)}
       exiting={FadeOut.duration(300)}
     >
-      <BlurView intensity={200} style={StyleSheet.absoluteFill} tint="dark">
-        <View style={styles.container}>
-          <View style={styles.panel}>
-            <View style={styles.header}>
-              <Text style={styles.title}>Control Panel</Text>
-              <Pressable onPress={onClose} style={styles.closeButton}>
-                <Icon
-                  type="MaterialIcons"
-                  name="close"
-                  size={24}
-                  color={colors.text}
-                />
-              </Pressable>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.panel}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Control Panel</Text>
+            <Pressable onPress={onClose} style={styles.closeButton}>
+              <Icon
+                type="MaterialIcons"
+                name="close"
+                size={24}
+                color={colors.text}
+              />
+            </Pressable>
+          </View>
+
+          <ScrollView
+            contentContainerStyle={styles.content}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.settingRow}>
+              <Text style={styles.settingLabel}>Auto Play</Text>
+              <Switch
+                value={state.autoPlay}
+                onValueChange={handleToggleAutoPlay}
+                trackColor={{
+                  false: colors.border,
+                  true: colors.primary,
+                }}
+                thumbColor={colors.white}
+              />
             </View>
 
-            <ScrollView
-              contentContainerStyle={styles.content}
-              showsVerticalScrollIndicator={false}
-            >
-              <View style={styles.settingRow}>
-                <Text style={styles.settingLabel}>Auto Play</Text>
-                <Switch
-                  value={state.autoPlay}
-                  onValueChange={handleToggleAutoPlay}
-                  trackColor={{
-                    false: colors.border,
-                    true: colors.primary,
-                  }}
-                  thumbColor={colors.background}
-                />
-              </View>
-
-              {state.autoPlay && (
-                <Animated.View
-                  entering={FadeIn.duration(300)}
-                  exiting={FadeOut.duration(300)}
-                >
-                  <View style={styles.settingRow}>
-                    <Text style={styles.settingLabel}>
-                      Interval: {formatInterval(state.autoPlayInterval)}
-                    </Text>
-                  </View>
-                  <View style={styles.sliderContainer}>
-                    <Text style={styles.sliderLabel}>
-                      {formatInterval(MIN_INTERVAL_MS)}
-                    </Text>
-                    <View
-                      style={styles.customSlider}
-                      onLayout={(event) =>
-                        setSliderWidth(event.nativeEvent.layout.width)
-                      }
+            {state.autoPlay && (
+              <Animated.View
+                entering={FadeIn.duration(300)}
+                exiting={FadeOut.duration(300)}
+              >
+                <View style={styles.settingRow}>
+                  <Text style={styles.settingLabel}>
+                    Interval: {formatInterval(state.autoPlayInterval)}
+                  </Text>
+                </View>
+                <View style={styles.sliderContainer}>
+                  <Text style={styles.sliderLabel}>
+                    {formatInterval(MIN_INTERVAL_MS)}
+                  </Text>
+                  <View
+                    style={styles.customSlider}
+                    onLayout={(event) =>
+                      setSliderWidth(event.nativeEvent.layout.width)
+                    }
+                  >
+                    <Pressable
+                      style={styles.sliderTrackContainer}
+                      onPress={(event) => {
+                        if (sliderWidth > 0) {
+                          const { locationX } = event.nativeEvent;
+                          const percentage = Math.max(
+                            0,
+                            Math.min(1, locationX / sliderWidth),
+                          );
+                          const newValue =
+                            percentage * INTERVAL_RANGE_MS + MIN_INTERVAL_MS;
+                          handleIntervalChange(newValue);
+                        }
+                      }}
                     >
-                      <Pressable
-                        style={styles.sliderTrackContainer}
-                        onPress={(event) => {
-                          if (sliderWidth > 0) {
-                            const { locationX } = event.nativeEvent;
-                            const percentage = Math.max(
-                              0,
-                              Math.min(1, locationX / sliderWidth),
-                            );
-                            const newValue =
-                              percentage * INTERVAL_RANGE_MS + MIN_INTERVAL_MS;
-                            handleIntervalChange(newValue);
-                          }
-                        }}
-                      >
-                        <View style={styles.sliderTrack}>
-                          <View
-                            style={[
-                              styles.sliderFill,
-                              { width: `${sliderPercentage}%` },
-                            ]}
-                          />
-                        </View>
-                      </Pressable>
-                      <View
-                        style={[
-                          styles.sliderThumb,
-                          { left: `${sliderPercentage}%` },
-                        ]}
-                      >
-                        <View style={styles.thumbInner} />
+                      <View style={styles.sliderTrack}>
+                        <View
+                          style={[
+                            styles.sliderFill,
+                            { width: `${sliderPercentage}%` },
+                          ]}
+                        />
                       </View>
+                    </Pressable>
+                    <View
+                      style={[
+                        styles.sliderThumb,
+                        { left: `${sliderPercentage}%` },
+                      ]}
+                    >
+                      <View style={styles.thumbInner} />
                     </View>
-                    <Text style={styles.sliderLabel}>
-                      {formatInterval(MAX_INTERVAL_MS)}
-                    </Text>
                   </View>
-                </Animated.View>
-              )}
+                  <Text style={styles.sliderLabel}>
+                    {formatInterval(MAX_INTERVAL_MS)}
+                  </Text>
+                </View>
+              </Animated.View>
+            )}
 
-              <View style={styles.settingRow}>
-                <Text style={styles.settingLabel}>Loop Slides</Text>
-                <Switch
-                  value={state.loop}
-                  onValueChange={handleToggleLoop}
-                  trackColor={{
-                    false: colors.border,
-                    true: colors.primary,
-                  }}
-                  thumbColor={colors.background}
+            <View style={styles.settingRow}>
+              <Text style={styles.settingLabel}>Loop Slides</Text>
+              <Switch
+                value={state.loop}
+                onValueChange={handleToggleLoop}
+                trackColor={{
+                  false: colors.border,
+                  true: colors.primary,
+                }}
+                thumbColor={colors.white}
+              />
+            </View>
+
+            <View style={styles.settingSection}>
+              <Text style={styles.settingLabel}>Carousel Mode</Text>
+              <View style={styles.modeOptions}>
+                {renderModeOption("parallax", "Parallax")}
+                {renderModeOption("horizontal-stack", "H-Stack")}
+                {renderModeOption("vertical-stack", "V-Stack")}
+              </View>
+            </View>
+
+            <View style={styles.settingSection}>
+              <Text style={styles.settingLabel}>Image Resize Mode</Text>
+              <View style={styles.modeOptions}>
+                {renderResizeModeOption("cover", "Cover")}
+                {renderResizeModeOption("contain", "Contain")}
+                {renderResizeModeOption("stretch", "Stretch")}
+                {renderResizeModeOption("repeat", "Repeat")}
+                {renderResizeModeOption("center", "Center")}
+              </View>
+            </View>
+
+            <View style={styles.settingSection}>
+              <Text style={styles.settingLabel}>Image Reset Timer</Text>
+              <View style={styles.modeOptions}>
+                {renderTimerOption(30000, "30 sec")}
+                {renderTimerOption(60000, "1 min")}
+                {renderTimerOption(90000, "1 min 30 sec")}
+                {renderTimerOption(120000, "2 min")}
+                {renderTimerOption(180000, "3 min")}
+                {renderTimerOption(240000, "4 min")}
+                {renderTimerOption(300000, "5 min")}
+              </View>
+            </View>
+          </ScrollView>
+
+          <View style={styles.footer}>
+            {isLandscape ? (
+              <View style={styles.footerRowLandscape}>
+                <Button
+                  title="Add Photo"
+                  onPress={onAddPhoto}
+                  icon="camera"
+                  style={styles.actionButtonLandscape}
+                  textStyle={styles.actionButtonText}
                 />
-              </View>
-
-              <View style={styles.settingSection}>
-                <Text style={styles.settingLabel}>Carousel Mode</Text>
-                <View style={styles.modeOptions}>
-                  {renderModeOption("parallax", "Parallax")}
-                  {renderModeOption("horizontal-stack", "H-Stack")}
-                  {renderModeOption("vertical-stack", "V-Stack")}
-                </View>
-              </View>
-
-              <View style={styles.settingSection}>
-                <Text style={styles.settingLabel}>Image Resize Mode</Text>
-                <View style={styles.modeOptions}>
-                  {renderResizeModeOption("cover", "Cover")}
-                  {renderResizeModeOption("contain", "Contain")}
-                  {renderResizeModeOption("stretch", "Stretch")}
-                  {renderResizeModeOption("repeat", "Repeat")}
-                  {renderResizeModeOption("center", "Center")}
-                </View>
-              </View>
-            </ScrollView>
-
-            <View
-              style={[styles.footer, isLandscape && styles.footerLandscape]}
-            >
-              {isLandscape ? (
-                <View style={styles.footerRowLandscape}>
+                {IS_AOS && (
                   <Button
-                    title="Add Photo"
-                    onPress={onAddPhoto}
-                    icon="camera"
-                    style={styles.actionButtonLandscape}
+                    title={isScreenLocked ? "Unlock" : "Lock"}
+                    onPress={onToggleLock}
+                    icon={isScreenLocked ? "unlock" : "lock"}
+                    style={[
+                      styles.actionButtonLandscape,
+                      {
+                        backgroundColor: isScreenLocked
+                          ? colors.error
+                          : colors.primaryLight,
+                      },
+                    ]}
                     textStyle={styles.actionButtonText}
                   />
+                )}
+
+                <Button
+                  title="Apply Settings"
+                  onPress={handleSave}
+                  style={styles.saveButtonLandscape}
+                  textStyle={styles.saveText}
+                />
+              </View>
+            ) : (
+              <>
+                <View style={styles.actionButtons}>
                   {IS_AOS && (
                     <Button
                       title={isScreenLocked ? "Unlock" : "Lock"}
                       onPress={onToggleLock}
                       icon={isScreenLocked ? "unlock" : "lock"}
                       style={[
-                        styles.actionButtonLandscape,
+                        styles.actionButton,
                         {
                           backgroundColor: isScreenLocked
                             ? colors.error
-                            : colors.secondary,
+                            : colors.primaryLight,
                         },
                       ]}
                       textStyle={styles.actionButtonText}
@@ -340,53 +412,25 @@ const Setting = ({
                   )}
 
                   <Button
-                    title="Apply Settings"
-                    onPress={handleSave}
-                    style={styles.saveButtonLandscape}
-                    textStyle={styles.saveText}
+                    title="Add Photo"
+                    onPress={onAddPhoto}
+                    icon="camera"
+                    style={styles.actionButton}
+                    textStyle={styles.actionButtonText}
                   />
                 </View>
-              ) : (
-                <>
-                  <View style={styles.actionButtons}>
-                    {IS_AOS && (
-                      <Button
-                        title={isScreenLocked ? "Unlock" : "Lock"}
-                        onPress={onToggleLock}
-                        icon={isScreenLocked ? "unlock" : "lock"}
-                        style={[
-                          styles.actionButton,
-                          {
-                            backgroundColor: isScreenLocked
-                              ? colors.error
-                              : colors.secondary,
-                          },
-                        ]}
-                        textStyle={styles.actionButtonText}
-                      />
-                    )}
 
-                    <Button
-                      title="Add Photo"
-                      onPress={onAddPhoto}
-                      icon="camera"
-                      style={styles.actionButton}
-                      textStyle={styles.actionButtonText}
-                    />
-                  </View>
-
-                  <Button
-                    title="Apply Settings"
-                    onPress={handleSave}
-                    style={styles.saveButton}
-                    textStyle={styles.saveText}
-                  />
-                </>
-              )}
-            </View>
+                <Button
+                  title="Apply Settings"
+                  onPress={handleSave}
+                  style={styles.saveButton}
+                  textStyle={styles.saveText}
+                />
+              </>
+            )}
           </View>
         </View>
-      </BlurView>
+      </SafeAreaView>
     </Animated.View>
   );
 };
@@ -396,6 +440,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     paddingHorizontal: 20,
+    backgroundColor: colors.modal,
   },
   panel: {
     width: "100%",
@@ -405,19 +450,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
   title: {
     fontSize: 20,
     fontWeight: "600",
-    color: colors.background,
+    color: colors.white,
   },
   closeButton: {
     padding: 8,
     borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    backgroundColor: colors.buttonSecondary,
   },
   content: {
     paddingHorizontal: 16,
@@ -433,7 +479,7 @@ const styles = StyleSheet.create({
   },
   settingLabel: {
     fontSize: 16,
-    color: colors.background,
+    color: colors.white,
     fontWeight: "500",
   },
   sliderContainer: {
@@ -473,7 +519,7 @@ const styles = StyleSheet.create({
     top: "50%",
     transform: [{ translateY: -12 }, { translateX: -12 }],
     borderWidth: 2,
-    borderColor: colors.background,
+    borderColor: colors.white,
     elevation: 3,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
@@ -488,7 +534,7 @@ const styles = StyleSheet.create({
   },
   sliderLabel: {
     fontSize: 12,
-    color: colors.background,
+    color: colors.white,
     minWidth: 50,
     textAlign: "center",
   },
@@ -522,20 +568,18 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   selectedModeText: {
-    color: colors.background,
+    color: colors.white,
   },
   footer: {
-    padding: 16,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-  },
-  footerLandscape: {
-    paddingHorizontal: 24,
   },
   footerRowLandscape: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    paddingHorizontal: 20,
   },
   actionButtons: {
     flexDirection: "row",
@@ -555,7 +599,7 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 14,
-    color: colors.background,
+    color: colors.white,
     fontWeight: "600",
   },
   saveButton: {
@@ -571,7 +615,7 @@ const styles = StyleSheet.create({
   },
   saveText: {
     fontSize: 16,
-    color: colors.background,
+    color: colors.white,
     fontWeight: "600",
   },
 });

@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Platform,
   Pressable,
+  StyleProp,
   StyleSheet,
   Text,
   TextStyle,
@@ -27,8 +28,8 @@ const Button = ({
   isOnline?: boolean;
   isLoading?: boolean;
   icon?: string;
-  style?: ViewStyle | ViewStyle[];
-  textStyle?: TextStyle;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
   shouldVisible?: boolean;
   disabled?: boolean;
 }) => {
@@ -49,7 +50,7 @@ const Button = ({
     <Pressable
       onPress={onPress}
       style={getButtonStyle}
-      android_ripple={{ color: "#ffffff44", borderless: false }}
+      android_ripple={{ color: colors.ripple, borderless: false }}
       disabled={isLoading || disabled || !isOnline}
       accessibilityRole="button"
       accessibilityState={{ disabled: isLoading || !isOnline }}
@@ -63,7 +64,11 @@ const Button = ({
       {icon && (
         <Icon
           type="Feather"
-          color={String(textStyle?.color ?? colors.background)}
+          color={
+            textStyle && "color" in textStyle
+              ? String(textStyle.color)
+              : colors.white
+          }
           name={icon}
           size={24}
         />
@@ -99,7 +104,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   updateButtonText: {
-    color: colors.background,
+    color: colors.white,
     fontSize: 14,
     fontWeight: "500",
     ...Platform.select({
