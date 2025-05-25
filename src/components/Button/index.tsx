@@ -5,12 +5,25 @@ import {
   ActivityIndicator,
   Platform,
   Pressable,
+  PressableProps,
   StyleProp,
   StyleSheet,
   Text,
   TextStyle,
   ViewStyle,
 } from "react-native";
+
+interface Props extends PressableProps {
+  onPress: () => void;
+  title: string;
+  isOnline?: boolean;
+  isLoading?: boolean;
+  icon?: string;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
+  shouldVisible?: boolean;
+  disabled?: boolean;
+}
 
 const Button = ({
   onPress,
@@ -22,17 +35,8 @@ const Button = ({
   textStyle,
   shouldVisible = true,
   disabled = false,
-}: {
-  onPress: () => void;
-  title: string;
-  isOnline?: boolean;
-  isLoading?: boolean;
-  icon?: string;
-  style?: StyleProp<ViewStyle>;
-  textStyle?: StyleProp<TextStyle>;
-  shouldVisible?: boolean;
-  disabled?: boolean;
-}) => {
+  ...props
+}: Props) => {
   const getButtonStyle = useCallback(
     ({ pressed }: { pressed: boolean }) => [
       styles.button,
@@ -48,6 +52,7 @@ const Button = ({
 
   return (
     <Pressable
+      {...props}
       onPress={onPress}
       style={getButtonStyle}
       android_ripple={{ color: colors.ripple, borderless: false }}

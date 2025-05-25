@@ -2,8 +2,8 @@ import { initializeCacheDir } from "@utils/cache";
 import { getScreenOrientation } from "@utils/layout";
 import { useKeepAwake } from "expo-keep-awake";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
-import { Dimensions } from "react-native";
+import { useEffect, useState, useMemo, useCallback } from "react";
+import { Dimensions, ScaledSize } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Home from "./Home";
@@ -11,37 +11,36 @@ import Home from "./Home";
 export default function App() {
   useKeepAwake();
 
-  const [isLandscape, setIsLandscape] = useState<boolean>(
-    getScreenOrientation(),
+  const [dimensions, setDimensions] = useState<ScaledSize>(
+    Dimensions.get("window"),
   );
-  const [dimensions, setDimensions] = useState({
-    width: Dimensions.get("window").width,
-    height: Dimensions.get("window").height,
-  });
+
+  const isLandscape = useMemo(
+    () => getScreenOrientation(dimensions),
+    [dimensions],
+  );
 
   useEffect(() => {
-    const initApp = async () => {
-      await initializeCacheDir();
-    };
-    initApp();
+    initializeCacheDir().catch((error) =>
+      console.error("Failed to initialize cache directory:", error),
+    );
   }, []);
 
+  const handleDimensionChange = useCallback(
+    ({ window }: { window: ScaledSize }) => {
+      setDimensions(window);
+    },
+    [],
+  );
+
   useEffect(() => {
-    const updateOrientation = () => {
-      setIsLandscape(getScreenOrientation());
-      setDimensions({
-        width: Dimensions.get("window").width,
-        height: Dimensions.get("window").height,
-      });
-    };
     const subscription = Dimensions.addEventListener(
       "change",
-      updateOrientation,
+      handleDimensionChange,
     );
-    return () => {
-      subscription?.remove();
-    };
-  }, []);
+
+    return () => subscription.remove();
+  }, [handleDimensionChange]);
 
   return (
     <GestureHandlerRootView>

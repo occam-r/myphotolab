@@ -6,7 +6,14 @@ import {
   useCameraPermissions,
 } from "expo-camera";
 import { saveToLibraryAsync, usePermissions } from "expo-media-library";
-import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -20,11 +27,11 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const PHOTO_OPTIONS = {
+const PHOTO_OPTIONS = Object.freeze({
   quality: 1,
   exif: true,
   skipProcessing: false,
-};
+});
 
 interface Props {
   onFinish: (photos: CameraCapturedPicture[]) => void;
@@ -45,17 +52,18 @@ const CameraScreen = ({ onFinish, onClose, isLandscape }: Props) => {
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
-    const requestPermissions = async () => {
-      if (!cameraPermission?.granted) {
-        await requestCameraPermission();
-      }
-      if (!libraryPermission?.granted) {
-        await requestLibraryPermission();
-      }
-    };
-
-    requestPermissions();
-  }, [cameraPermission, requestCameraPermission]);
+    if (!cameraPermission?.granted || !libraryPermission?.granted) {
+      const requestPermissions = async () => {
+        if (!cameraPermission?.granted) {
+          await requestCameraPermission();
+        }
+        if (!libraryPermission?.granted) {
+          await requestLibraryPermission();
+        }
+      };
+      requestPermissions();
+    }
+  }, [cameraPermission?.granted, libraryPermission?.granted]);
 
   const takePicture = useCallback(async () => {
     if (!cameraRef.current || isProcessing) return;
@@ -69,7 +77,9 @@ const CameraScreen = ({ onFinish, onClose, isLandscape }: Props) => {
         setCapturedPhotos((prev) => [...prev, photo]);
 
         if (libraryPermission?.granted) {
-          saveToLibraryAsync(photo.uri);
+          saveToLibraryAsync(photo.uri).catch((err) =>
+            console.error("Error saving to library:", err),
+          );
         }
       }
     } catch (error) {
@@ -77,7 +87,7 @@ const CameraScreen = ({ onFinish, onClose, isLandscape }: Props) => {
     } finally {
       setIsProcessing(false);
     }
-  }, [isProcessing]);
+  }, [isProcessing, libraryPermission?.granted]);
 
   const handleFinish = useCallback(() => {
     onFinish(capturedPhotos);
@@ -93,9 +103,15 @@ const CameraScreen = ({ onFinish, onClose, isLandscape }: Props) => {
         <Image
           source={{ uri: item.uri }}
           style={styles.thumbnail}
-          onError={(error) =>
-            console.error("Image loading error:", error.nativeEvent.error)
-          }
+          fadeDuration={0}
+          onError={(error) => {
+            console.error(
+              "Image loading error:",
+              error.nativeEvent.error,
+              "for URI:",
+              item.uri,
+            );
+          }}
         />
       </View>
     ),
@@ -103,7 +119,20 @@ const CameraScreen = ({ onFinish, onClose, isLandscape }: Props) => {
   );
 
   const keyExtractor = useCallback(
-    (_: any, index: number) => `photo-${index}`,
+    (_item: CameraCapturedPicture, index: number) => `photo-${index}`,
+    [],
+  );
+
+  const listConfig = useMemo(
+    () => ({
+      windowSize: 5,
+      removeClippedSubviews: true,
+      keyboardShouldPersistTaps: "handled" as const,
+      updateCellsBatchingPeriod: 50,
+      initialNumToRender: 4,
+      maxToRenderPerBatch: 8,
+      showsHorizontalScrollIndicator: false,
+    }),
     [],
   );
 
@@ -130,7 +159,7 @@ const CameraScreen = ({ onFinish, onClose, isLandscape }: Props) => {
         <Button
           onPress={onClose}
           title="Close"
-          style={styles.closeButton}
+          style={styles.permissionCloseButton}
           textStyle={styles.closeText}
         />
       </View>
@@ -166,17 +195,23 @@ const CameraScreen = ({ onFinish, onClose, isLandscape }: Props) => {
               data={capturedPhotos}
               renderItem={renderThumbnail}
               keyExtractor={keyExtractor}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={[
-                styles.previewList,
-                isLandscape && styles.previewListLandscape,
-              ]}
-              initialNumToRender={5}
-              maxToRenderPerBatch={10}
-              windowSize={5}
-              removeClippedSubviews={true}
+              contentContainerStyle={
+                isLandscape
+                  ? [styles.previewList, styles.previewListLandscape]
+                  : [styles.previewList]
+              }
+              {...listConfig}
               numColumns={isLandscape ? 2 : undefined}
               key={isLandscape ? "v" : "h"}
+              getItemLayout={
+                isLandscape
+                  ? undefined
+                  : (_, index) => ({
+                      length: 66,
+                      offset: 66 * index,
+                      index,
+                    })
+              }
             />
           </View>
 
@@ -187,10 +222,16 @@ const CameraScreen = ({ onFinish, onClose, isLandscape }: Props) => {
             ]}
           >
             <TouchableOpacity
-              style={styles.captureButton}
+              style={
+                isProcessing
+                  ? [styles.captureButton, styles.disabledButton]
+                  : [styles.captureButton]
+              }
               onPress={takePicture}
               disabled={isProcessing}
               activeOpacity={0.7}
+              accessibilityLabel="Take picture"
+              accessibilityHint="Takes a photo with the camera"
             >
               {isProcessing ? (
                 <ActivityIndicator size="large" color={colors.primary} />
@@ -218,12 +259,12 @@ const CameraScreen = ({ onFinish, onClose, isLandscape }: Props) => {
               />
 
               <Button
-                title={"Close"}
+                title="Close"
                 onPress={onClose}
                 style={
                   isLandscape
-                    ? [styles.closeButt, styles.closeButtLandscape]
-                    : [styles.closeButt]
+                    ? [styles.closeButton, styles.closeButtonLandscape]
+                    : [styles.closeButton]
                 }
                 textStyle={styles.closeText}
               />
@@ -275,20 +316,6 @@ const styles = StyleSheet.create({
   },
   previewContainer: {
     flex: 1,
-  },
-  photoCount: {
-    color: colors.white,
-    fontSize: 14,
-    fontWeight: "600",
-    marginLeft: 10,
-    marginBottom: 5,
-    textAlign: "center",
-    backgroundColor: colors.modal,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-    overflow: "hidden",
-    alignSelf: "center",
   },
   previewList: {
     paddingHorizontal: 12,
@@ -383,19 +410,19 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderRadius: 10,
   },
-  closeButton: {
+  permissionCloseButton: {
     backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.border,
     width: "90%",
   },
-  closeButt: {
+  closeButton: {
     width: "45%",
     backgroundColor: colors.cameraControls,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  closeButtLandscape: {
+  closeButtonLandscape: {
     width: "100%",
     borderRadius: 10,
   },

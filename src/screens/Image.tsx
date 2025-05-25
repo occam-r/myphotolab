@@ -45,16 +45,43 @@ interface Props {
 }
 
 const GridItem = memo(({ item, onDeleteImage }: GridItemProps) => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+
   return (
     <View style={styles.card}>
-      <Image
-        style={styles.image}
-        source={{ uri: item.uri }}
-        resizeMode="cover"
-        fadeDuration={300}
-        accessibilityLabel={`Image ${item.id}`}
-      />
-      <Sortable.Pressable style={styles.deleteButton} onPress={onDeleteImage}>
+      {isLoading && <View style={[styles.image, styles.imagePlaceholder]} />}
+      {hasError ? (
+        <View style={[styles.image, styles.imageError]}>
+          <Icon
+            type="MaterialIcons"
+            name="broken-image"
+            size={32}
+            color={colors.textSecondary}
+          />
+        </View>
+      ) : (
+        <Image
+          style={styles.image}
+          source={{ uri: item.uri }}
+          resizeMode="cover"
+          fadeDuration={300}
+          accessibilityLabel={`Image ${item.id}`}
+          onLoadStart={() => setIsLoading(true)}
+          onLoadEnd={() => setIsLoading(false)}
+          onError={() => {
+            setIsLoading(false);
+            setHasError(true);
+            console.error(`Failed to load image: ${item.uri}`);
+          }}
+        />
+      )}
+      <Sortable.Pressable
+        style={styles.deleteButton}
+        onPress={onDeleteImage}
+        accessibilityLabel="Delete image"
+        accessibilityHint="Removes this image from the collection"
+      >
         <Icon
           type="MaterialIcons"
           name="delete"
@@ -151,53 +178,76 @@ const ImageModal = ({ isOpen, onClose, data, onSaved, isLandscape }: Props) => {
         allowsMultipleSelection: true,
         aspect: [4, 3],
         quality: 0.8,
+        exif: false,
+        base64: false,
       });
 
       if (result.canceled) {
-        ToastAndroid.show(`You did not select any image`, ToastAndroid.SHORT);
+        return;
+      }
+
+      if (!result.assets || result.assets.length === 0) {
+        ToastAndroid.show(`No images were selected`, ToastAndroid.SHORT);
         return;
       }
 
       await processPickedImages(result.assets);
     } catch (error) {
       console.error("Error picking images:", error);
-      ToastAndroid.show("Failed to process images", ToastAndroid.SHORT);
+      ToastAndroid.show(
+        `Failed to load images: ${error instanceof Error ? error.message : "Unknown error"}`,
+        ToastAndroid.SHORT,
+      );
     }
-  }, [sectionImages]);
+  }, []);
 
   const processPickedImages = useCallback(
     async (
       assets: ImagePicker.ImagePickerAsset[] | CameraCapturedPicture[],
     ) => {
+      if (!assets || assets.length === 0) {
+        return;
+      }
+
       const timestamp = Date.now();
 
-      const newImages = assets.map((asset, index) => ({
-        name:
-          (asset as ImagePicker.ImagePickerAsset).fileName ||
-          `Image-${index + 1}`,
-        type: (asset as ImagePicker.ImagePickerAsset).mimeType || "image/jpeg",
-        lastModified: timestamp,
-        size: (asset as ImagePicker.ImagePickerAsset).fileSize || 0,
-        id: `${timestamp}-${index}`,
-        uri: asset.uri,
-      }));
-
       try {
+        const totalAssets = assets.length;
+
+        const allNewImages = assets.map((asset, index) => ({
+          name:
+            (asset as ImagePicker.ImagePickerAsset).fileName ||
+            `Image-${index + 1}`,
+          type:
+            (asset as ImagePicker.ImagePickerAsset).mimeType || "image/jpeg",
+          lastModified: timestamp,
+          size: (asset as ImagePicker.ImagePickerAsset).fileSize || 0,
+          id: `${timestamp}-${index}`,
+          uri: asset.uri,
+        }));
+
         dispatch({
           type: "SET_MODAL_DATA",
           payload: {
-            sectionImages: [...sectionImages, ...newImages],
+            sectionImages: [...sectionImages, ...allNewImages],
           },
         });
-        scrollableRef.current?.scrollToEnd({
-          animated: true,
-        });
+
+        setTimeout(() => {
+          scrollableRef.current?.scrollToEnd({
+            animated: true,
+          });
+        }, 100);
+
+        if (totalAssets > 5) {
+          ToastAndroid.show(`Added ${totalAssets} images`, ToastAndroid.SHORT);
+        }
       } catch (error) {
         console.error("Error processing images:", error);
         ToastAndroid.show("Failed to process images", ToastAndroid.SHORT);
       }
     },
-    [sectionImages, scrollableRef], // Added scrollableRef
+    [sectionImages, scrollableRef],
   );
 
   const handleCameraSave = useCallback(
@@ -252,6 +302,8 @@ const ImageModal = ({ isOpen, onClose, data, onSaved, isLandscape }: Props) => {
                   isLandscape && styles.scrollContentLandscape,
                   sectionImages.length === 0 && styles.emptyStateContainer,
                 ]}
+                removeClippedSubviews={true}
+                scrollEventThrottle={16}
               >
                 {sectionImages.length === 0 ? (
                   <View style={styles.emptyStateContent}>
@@ -296,28 +348,28 @@ const ImageModal = ({ isOpen, onClose, data, onSaved, isLandscape }: Props) => {
                     <Button
                       title="Close"
                       onPress={handleOnClose}
-                      style={{
-                        ...styles.footerButtonLandscape,
-                        ...styles.closeButtonLandscape,
-                      }}
+                      style={[
+                        styles.footerButtonLandscape,
+                        styles.closeButtonLandscape,
+                      ]}
                       textStyle={styles.closeText}
                     />
                     <Button
                       onPress={() => setShowCamera(true)}
-                      style={{
-                        ...styles.footerButtonLandscape,
-                        ...styles.cameraGalleryLandscape,
-                      }}
+                      style={[
+                        styles.footerButtonLandscape,
+                        styles.cameraGalleryLandscape,
+                      ]}
                       title="Take Photo"
                       textStyle={styles.text}
                       icon="camera"
                     />
                     <Button
                       onPress={handleImagePick}
-                      style={{
-                        ...styles.footerButtonLandscape,
-                        ...styles.cameraGalleryLandscape,
-                      }}
+                      style={[
+                        styles.footerButtonLandscape,
+                        styles.cameraGalleryLandscape,
+                      ]}
                       title="Gallery"
                       textStyle={styles.text}
                       icon="image"
@@ -325,10 +377,10 @@ const ImageModal = ({ isOpen, onClose, data, onSaved, isLandscape }: Props) => {
                     <Button
                       title="Save"
                       onPress={handleOnSaved}
-                      style={{
-                        ...styles.footerButtonLandscape,
-                        ...styles.saveButtonLandscape,
-                      }}
+                      style={[
+                        styles.footerButtonLandscape,
+                        styles.saveButtonLandscape,
+                      ]}
                       textStyle={styles.saveText}
                     />
                   </View>
@@ -341,6 +393,8 @@ const ImageModal = ({ isOpen, onClose, data, onSaved, isLandscape }: Props) => {
                         title="Take Photo"
                         textStyle={styles.text}
                         icon="camera"
+                        accessibilityLabel="Take Photo"
+                        accessibilityHint="Opens camera to take new photos"
                       />
                       <Button
                         onPress={handleImagePick}
@@ -348,6 +402,8 @@ const ImageModal = ({ isOpen, onClose, data, onSaved, isLandscape }: Props) => {
                         title="Gallery"
                         textStyle={styles.text}
                         icon="image"
+                        accessibilityLabel="Gallery"
+                        accessibilityHint="Opens device gallery to select photos"
                       />
                     </View>
                     <View style={styles.footerRowPortrait}>
@@ -356,12 +412,16 @@ const ImageModal = ({ isOpen, onClose, data, onSaved, isLandscape }: Props) => {
                         onPress={handleOnClose}
                         style={styles.closeButtonPortrait}
                         textStyle={styles.closeText}
+                        accessibilityLabel="Close"
+                        accessibilityHint="Closes the image editor without saving"
                       />
                       <Button
                         title="Save"
                         onPress={handleOnSaved}
                         style={styles.saveButtonPortrait}
                         textStyle={styles.saveText}
+                        accessibilityLabel="Save"
+                        accessibilityHint="Saves the current image arrangement"
                       />
                     </View>
                   </>
@@ -405,7 +465,7 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 16,
-    color: "#6c757d",
+    color: colors.textSecondary,
     textAlign: "center",
     marginBottom: 24,
     lineHeight: 22,
@@ -428,11 +488,21 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 200,
   },
+  imagePlaceholder: {
+    backgroundColor: colors.border,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  imageError: {
+    backgroundColor: colors.backgroundSecondary,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   deleteButton: {
     position: "absolute",
     right: 8,
     top: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    backgroundColor: colors.photoControls,
     borderRadius: 12,
     padding: 4,
   },
@@ -449,16 +519,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.white,
   },
-  footerButton: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 12,
-    gap: 12,
-  },
   footer: {
     backgroundColor: colors.background,
     borderTopWidth: 1,
-    borderTopColor: "#e9ecef",
+    borderTopColor: colors.border,
     paddingTop: 8,
   },
   footerLandscape: {
@@ -486,9 +550,9 @@ const styles = StyleSheet.create({
   },
   closeButtonPortrait: {
     flex: 1,
-    backgroundColor: "#f1f3f5",
+    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: "#dee2e6",
+    borderColor: colors.border,
     borderRadius: 12,
     marginHorizontal: 4,
   },
@@ -511,22 +575,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   closeButtonLandscape: {
-    backgroundColor: "#f1f3f5",
+    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: "#dee2e6",
+    borderColor: colors.border,
   },
   saveButtonLandscape: {
     backgroundColor: colors.primary,
   },
-  saveText: {
-    fontSize: 16,
-    color: colors.white,
-    fontWeight: "600",
-  },
-  closeText: {
-    fontSize: 16,
-    color: "#495057",
-    fontWeight: "600",
+  footerButton: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    gap: 12,
   },
   cameraGallery: {
     flex: 1,
@@ -535,6 +595,16 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     backgroundColor: colors.background,
     marginTop: 8,
+  },
+  saveText: {
+    fontSize: 16,
+    color: colors.white,
+    fontWeight: "600",
+  },
+  closeText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    fontWeight: "600",
   },
   text: {
     fontSize: 16,

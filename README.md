@@ -22,6 +22,8 @@ My Photo Lab is a feature-rich mobile application built with React Native and Ex
 
 ### Security
 - **Biometric Authentication**: Secure your photos with fingerprint or face recognition
+- **Fallback App Pin Lock**: Secondary PIN-based authentication when biometrics are unavailable
+- **App Screen Pinning Lock**: Prevents unauthorized access to other apps while viewing photos
 - **Local Storage**: All photos are stored locally on your device for privacy
 
 ### User Experience

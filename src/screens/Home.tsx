@@ -158,7 +158,6 @@ export default function Home({
         }
       }
     } else {
-      // Lock screen
       if (Platform.OS === "android") {
         try {
           if (Platform.Version >= 21) {
@@ -199,7 +198,12 @@ export default function Home({
     }
   }, [isScreenLocked]);
 
-  // Save settings handler with optimized error handling
+  const handleOnMatch = useCallback(async () => {
+    setFallBackModal(false);
+    setSettingsVisible(false);
+    toggleImageModal();
+  }, []);
+
   const handleSaveSetting = useCallback(async (setting: Settings) => {
     try {
       dispatch({ type: "SET_LOADING", payload: { setting: true } });
@@ -214,7 +218,6 @@ export default function Home({
     }
   }, []);
 
-  // Save images handler with optimized error handling
   const handleSaveImage = useCallback(async (images: Images[]) => {
     try {
       dispatch({ type: "SET_LOADING", payload: { images: true } });
@@ -286,7 +289,6 @@ export default function Home({
     setting.autoPlay,
   ]);
 
-  // Render loading indicator when data is being loaded
   const renderLoadingOverlay = useCallback(() => {
     if (loading.images || loading.setting) {
       return (
@@ -315,7 +317,6 @@ export default function Home({
     [carouselConfig.resizeMode],
   );
 
-  // Enhanced modeConfig with more customization options
   const modeConfig = useMemo(() => {
     switch (setting.mode) {
       case "horizontal-stack":
@@ -445,16 +446,11 @@ export default function Home({
           isScreenLocked={isScreenLocked}
           isLandscape={isLandscape}
         />
+
         <Password
           isVisible={fallBackModal}
-          onClose={() => {
-            setFallBackModal(false);
-          }}
-          onMatches={() => {
-            setFallBackModal(false);
-            setSettingsVisible(false);
-            toggleImageModal();
-          }}
+          onClose={() => setFallBackModal(false)}
+          onMatches={handleOnMatch}
           isLandscape={isLandscape}
         />
       </View>
@@ -470,7 +466,7 @@ const styles = StyleSheet.create({
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255, 255, 255, 0.7)",
+    backgroundColor: colors.cameraControls,
     justifyContent: "center",
     alignItems: "center",
     zIndex: 20,
@@ -488,7 +484,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
-    backgroundColor: colors.background,
   },
   emptyStateContent: {
     width: "100%",
@@ -518,7 +513,7 @@ const styles = StyleSheet.create({
   instructionsContainer: {
     width: "100%",
     marginBottom: 32,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: colors.background,
     borderRadius: 12,
     padding: 16,
   },
