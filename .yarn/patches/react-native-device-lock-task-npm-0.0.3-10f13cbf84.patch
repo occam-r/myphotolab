@@ -1,0 +1,13 @@
+diff --git a/android/src/main/java/com/rtn_device_lock_task/DeviceLockTaskPackage.kt b/android/src/main/java/com/rtn_device_lock_task/DeviceLockTaskPackage.kt
+index 1290f7451ab461e6a99238291aa5d451947bdab0..b0e59a4fa696e69588d57322f21458a41a3af275 100644
+--- a/android/src/main/java/com/rtn_device_lock_task/DeviceLockTaskPackage.kt
++++ b/android/src/main/java/com/rtn_device_lock_task/DeviceLockTaskPackage.kt
+@@ -22,7 +22,7 @@ class DeviceLockTaskPackage : TurboReactPackage() {
+     override fun getReactModuleInfoProvider()=ReactModuleInfoProvider {
+         mapOf(
+             DeviceLockTaskModule.NAME to ReactModuleInfo(
+-                DeviceLockTaskModule.NAME,DeviceLockTaskModule.NAME, _canOverrideExistingModule = false, _needsEagerInit = false,false, isTurboModule = true
++                DeviceLockTaskModule.NAME,DeviceLockTaskModule.NAME, false, false, true, false, true
+             )
+         )
+     }
